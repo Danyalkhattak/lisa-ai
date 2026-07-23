@@ -1,33 +1,45 @@
 {
-  "name": "lisa",
+  "name": "lisa-ai",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Lisa AI — a premium AI-powered browser voice assistant.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "convex:dev": "convex dev"
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.61.9",
-    "@tailwindcss/vite": "^4.3.3",
-    "convex": "^1.42.3",
-    "framer-motion": "^12.42.2",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router": "^7.18.1",
-    "tailwindcss": "^4.3.3"
+    "@clerk/clerk-react": "^5.7.0",
+    "@emailjs/browser": "^4.4.1",
+    "@hookform/resolvers": "^3.9.0",
+    "clsx": "^2.1.1",
+    "convex": "^1.14.0",
+    "framer-motion": "^11.5.4",
+    "lucide-react": "^0.441.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "react-router-dom": "^6.26.1",
+    "svix": "^1.98.0",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
-    "eslint": "^10.6.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.3",
-    "globals": "^17.7.0",
-    "vite": "^8.1.1"
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-plugin-jsx-a11y": "^6.10.0",
+    "eslint-plugin-react": "^7.35.2",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.11",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "vite": "^5.4.3"
   }
 }
