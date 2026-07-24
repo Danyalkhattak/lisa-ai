@@ -9,6 +9,7 @@ import {
   Sparkles,
   Mail,
   User,
+  Users,
   Settings,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -546,25 +547,25 @@ export default function CallPage() {
   return (
     <div className="h-screen w-full bg-[#09090B] flex flex-col overflow-hidden relative">
       {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden sm:block">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       {/* Header */}
-      <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 relative z-10">
-        <div className="flex items-center gap-3">
+      <header className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 relative z-10">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Avatar */}
           <div className={cn(
-            "w-11 h-11 rounded-full flex items-center justify-center transition-all",
+            "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all",
             isInCall ? "bg-gradient-to-br from-green-400 to-emerald-500 animate-pulse" : "bg-gradient-to-br from-purple-500 to-cyan-500"
           )}>
-            <Sparkles className="w-5 h-5 text-white" />
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
           
           {/* Name + Status */}
           <div>
-            <h1 className="text-white font-semibold text-lg">Lisa</h1>
+            <h1 className="text-white font-semibold text-base sm:text-lg">Lisa</h1>
             
             {/* Inline Status Indicator */}
             <div className={cn(
@@ -585,6 +586,17 @@ export default function CallPage() {
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
+          {/* Contacts button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { if (isInCall) endCall(); navigate('/contacts'); }}
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-colors"
+            title="Contacts"
+          >
+            <Users className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
+          </motion.button>
+          
           {/* Settings button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -596,10 +608,10 @@ export default function CallPage() {
             <Settings className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
           </motion.button>
           
-          {/* Live badge */}
+          {/* Live badge - hidden on small screens */}
           {isInCall && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <span className="text-xs text-green-400 font-medium">Live</span>
             </motion.div>
@@ -608,7 +620,7 @@ export default function CallPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative z-10 px-6 py-4 overflow-hidden">
+      <main className="flex-1 flex flex-col relative z-10 px-4 sm:px-6 py-3 sm:py-4 overflow-hidden">
         
         {/* Transcript Area */}
         <div className="flex-1 max-w-2xl mx-auto w-full overflow-y-auto py-4 space-y-3">
@@ -619,7 +631,7 @@ export default function CallPage() {
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 className={cn("flex", line.role === 'user' ? "justify-end" : "justify-start")}>
                 <div className={cn(
-                  "max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                  "max-w-[90%] sm:max-w-[85%] px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed",
                   line.role === 'user'
                     ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-100 border border-cyan-500/30 rounded-br-md"
                     : "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-100 border border-purple-500/30 rounded-bl-md"
@@ -683,21 +695,21 @@ export default function CallPage() {
         </div>
 
         {/* Call Button - Clean, centered, no overlapping elements */}
-        <div className="flex-shrink-0 pb-6 pt-4 flex justify-center">
+        <div className="flex-shrink-0 pb-4 sm:pb-6 pt-4 flex justify-center">
           <AnimatePresence mode="wait">
             {!isInCall ? (
               <motion.button key="start" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={startCall}
-                className="group relative w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 active:scale-95 transition-all">
-                <Phone className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 active:scale-95 transition-all">
+                <Phone className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:scale-110 transition-transform" />
               </motion.button>
             ) : (
               <motion.button key="end" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={endCall}
-                className="group relative w-20 h-20 rounded-full bg-gradient-to-r from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-105 active:scale-95 transition-all">
-                <PhoneOff className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+                className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-105 active:scale-95 transition-all">
+                <PhoneOff className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:scale-110 transition-transform" />
               </motion.button>
             )}
           </AnimatePresence>
@@ -708,7 +720,7 @@ export default function CallPage() {
       <AnimatePresence>
         {error && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-4 right-4 max-w-md mx-auto z-50">
+            className="fixed bottom-4 left-3 right-3 sm:left-4 sm:right-4 sm:bottom-6 max-w-md mx-auto z-50">
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">

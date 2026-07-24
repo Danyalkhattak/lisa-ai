@@ -27,9 +27,12 @@ export default function ContactsPage() {
   const [success, setSuccess] = useState("");
 
   // Queries
-  const contacts = searchQuery
+  const contactsResult = searchQuery
     ? useQuery(api.contacts.search, { query: searchQuery })
     : useQuery(api.contacts.list);
+  
+  // Safe access - handle undefined state
+  const contacts = contactsResult || { isLoading: false, data: undefined };
 
   // Mutations
   const createContact = useMutation(api.contacts.create);
@@ -86,23 +89,23 @@ export default function ContactsPage() {
     <div className="min-h-screen bg-[#09090B]">
       {/* Header */}
       <header className="border-b border-white/10 bg-[#09090B]/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-white flex items-center gap-2">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <h1 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
             <Mail className="w-5 h-5 text-purple-400" />
-            Contacts
+            <span className="hidden sm:inline">Contacts</span>
           </h1>
           
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Contact
+            <span className="hidden sm:inline">Add Contact</span>
           </button>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -203,8 +206,11 @@ export default function ContactsPage() {
         {/* Contacts List */}
         <div className="space-y-2">
           {contacts.isLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading...</div>
-          ) : contacts.data?.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
+              Loading contacts...
+            </div>
+          ) : !contacts.data || contacts.data.length === 0 ? (
             <div className="text-center py-12">
               <Mail className="w-12 h-12 mx-auto mb-4 text-gray-700" />
               <p className="text-gray-500 mb-2">No contacts yet</p>
