@@ -73,9 +73,8 @@ What you can do:
 
 Important: Keep responses concise and conversational. You're a voice assistant, so your responses will be spoken aloud.`;
 
-
-/** Default model - Gemini 3.5 Flash Lite (fast, cost-effective) */
-const DEFAULT_MODEL = "gemini-3.5-flash-lite";
+/** Default model - Gemini 2.0 Flash (fast, cost-effective) */
+const DEFAULT_MODEL = "gemini-2.0-flash";
 
 /** Maximum messages for context */
 const MAX_CONTEXT_MESSAGES = 20;

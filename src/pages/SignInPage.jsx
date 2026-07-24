@@ -58,7 +58,7 @@ export default function SignInPage() {
         </div>
 
         {/* Clerk SignIn - Complete dark theme styling */}
-        <div className="bg-[#111113]/80 border border-white/[0.08] rounded-2xl p-4 sm:p-6 backdrop-blur-xl shadow-2xl shadow-black/40">
+        <div className="bg-[#111113]/80 border border-white/[0.08] rounded-2xl p-4 sm:p-6 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden">
           <SignIn 
             appearance={{
               variables: {

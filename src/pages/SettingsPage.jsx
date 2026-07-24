@@ -94,19 +94,17 @@ export default function SettingsPage() {
         >
           <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm">
             <div className="flex items-center gap-4">
-              {/* Avatar with gradient border */}
-              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 p-[2px] shadow-lg shadow-violet-500/20">
-                <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#09090B] flex items-center justify-center">
-                  {user?.imageUrl ? (
-                    <img 
-                      src={user.imageUrl} 
-                      alt={user?.firstName} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-gray-400" />
-                  )}
-                </div>
+              {/* Avatar */}
+              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+                {user?.imageUrl ? (
+                  <img 
+                    src={user.imageUrl} 
+                    alt={user?.firstName} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-8 h-8 text-gray-400" />
+                )}
               </div>
               
               {/* Info */}
