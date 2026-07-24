@@ -8,13 +8,17 @@
  * @module
  */
 
+import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
 import type * as clerkWebhook from "../clerkWebhook.js";
+import type * as contacts from "../contacts.js";
 import type * as conversations from "../conversations.js";
+import type * as email from "../email.js";
 import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as messages from "../messages.js";
 import type * as stats from "../stats.js";
+import type * as tools from "../tools.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 
@@ -25,13 +29,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  ai: typeof ai;
   auth: typeof auth;
   clerkWebhook: typeof clerkWebhook;
+  contacts: typeof contacts;
   conversations: typeof conversations;
+  email: typeof email;
   http: typeof http;
   lib: typeof lib;
   messages: typeof messages;
   stats: typeof stats;
+  tools: typeof tools;
   userSettings: typeof userSettings;
   users: typeof users;
 }>;

@@ -2,6 +2,7 @@
 
 A modern, AI-powered voice assistant that runs entirely in your browser. Built with React, powered by Google Gemini, with always-listening mode and guided email workflows.
 
+**July 2026 Edition — Production Ready**
 
 ---
 
@@ -9,7 +10,7 @@ A modern, AI-powered voice assistant that runs entirely in your browser. Built w
 
 - **Always-Listening Mode** — No tap needed. Lisa continuously listens when on a call
 - **Interruption Handling** — Stop Lisa mid-sentence just by talking
-- **Female Voice TTS** — Natural-sounding female voice
+- **Female Voice TTS** — Natural-sounding female voice (Samantha, Victoria, etc.)
 - **Guided Email Workflow** — "Send email to Ali" → Lisa guides you through it step-by-step
 - **Contacts Management** — Full CRUD for email contacts (stored in Convex)
 - **Clean UI** — Modern dark theme with smooth animations
@@ -37,7 +38,7 @@ A modern, AI-powered voice assistant that runs entirely in your browser. Built w
 2. **Tailwind CSS v4-ready** — Utility-first approach, no CSS files to maintain
 3. **Clerk** — Drop-in auth with pre-built UI components, no backend needed
 4. **Convex** — Serverless backend with real-time subscriptions, no separate API server
-5. **Gemini 3.0 Flash Lite** — Fast, cost-effective AI model from Google
+5. **Gemini 2.0 Flash** — Fast, cost-effective AI model from Google
 6. **Web Speech API** — Native browser speech recognition & synthesis (no external libs)
 
 ---
@@ -111,13 +112,13 @@ tables:
 - A [Clerk](https://clerk.com) account (free tier available)
 - A [Convex](https://convex.dev) account (free tier available)
 - Google Gemini API key from [AI Studio](https://aistudio.google.com)
-- EmailJS account (for email feature)
+- EmailJS account (optional, for email feature)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/Danyalkhattak/lisa-ai.git
+git clone <your-repo-url>
 cd lisa-ai
 
 # Install dependencies
@@ -134,13 +135,13 @@ cp .env.example .env.local
 # Clerk Authentication
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 
-# Convex Backend (It is generated automatically)
-CONVEX_DEPLOYMENT=your-deployment-url 
+# Convex Backend
+CONVEX_DEPLOYMENT=your-deployment-url
 
-# Google Gemini AI (Keep it in Convex Env)
+# Google Gemini AI
 GEMINI_API_KEY=AIza...
 
-# EmailJS (Keep it in Convex Env)
+# EmailJS (optional)
 EMAILJS_SERVICE_ID=...
 EMAILJS_TEMPLATE_ID=...
 EMAILJS_PUBLIC_KEY=...
@@ -224,7 +225,7 @@ Lisa: "Done! Email sent." ✅
 
 ## Deployment
 
-### Vercel 
+### Vercel (Recommended)
 
 1. Push code to GitHub
 2. Import project in [Vercel](https://vercel.com)
@@ -264,3 +265,13 @@ npx convex env set GEMINI_API_KEY your-key
 MIT — Free for personal and commercial use.
 
 ---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | July 2026 | Initial release — Always-listening mode, email workflow, contacts CRUD |
+
+---
+
+**Built with ❤️ using modern web technologies**
