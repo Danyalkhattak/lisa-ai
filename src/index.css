@@ -1,1 +1,202 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-text;
+    /* Subtle ambient mesh behind everything — fixed so it doesn't scroll */
+    background-image: var(--bg-mesh, none);
+    background-attachment: fixed;
+  }
+
+  /* Visible focus states for keyboard navigation (accessibility requirement) */
+  :focus-visible {
+    outline: 2px solid #7c3aed;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+
+  ::selection {
+    background-color: rgba(124, 58, 237, 0.35);
+    color: #ffffff;
+  }
+
+  /* Respect user's reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Glassmorphism surface used across cards, panels, modals */
+  .glass-panel {
+    @apply bg-surface/60 backdrop-blur-glass border border-border rounded-2xl shadow-glass;
+  }
+
+  .glass-panel-hover {
+    @apply transition-all duration-300 hover:border-primary/40 hover:shadow-glow;
+  }
+
+  /* Gradient text used sparingly for key headings */
+  .text-gradient {
+    @apply bg-gradient-primary bg-clip-text text-transparent;
+  }
+
+  .text-gradient-tri {
+    @apply bg-gradient-tri bg-clip-text text-transparent;
+    background-size: 200% 200%;
+    @apply animate-gradient-shift;
+  }
+
+  /* Animated gradient border wrapper — useful for CTA cards */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(#0a0a0c, #0a0a0c) padding-box,
+      linear-gradient(135deg, #7c3aed, #6366f1, #06b6d4) border-box;
+    border: 1px solid transparent;
+    border-radius: 1.5rem;
+  }
+
+  /* Scrollbar styling to match the dark, premium theme */
+  .themed-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+
+  .themed-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Primary CTA button — gradient pill with glow on hover */
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full
+      bg-gradient-primary px-6 py-3 font-body font-semibold text-white
+      shadow-glow-soft transition-all duration-300
+      hover:shadow-glow hover:-translate-y-0.5
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60;
+  }
+
+  /* Secondary CTA — ghost glass pill */
+  .btn-secondary {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-full
+      border border-border bg-white/[0.03] px-6 py-3 font-body font-semibold text-text
+      backdrop-blur-glass transition-all duration-300
+      hover:border-primary/40 hover:bg-white/[0.06] hover:-translate-y-0.5
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60;
+  }
+
+  /* Pill badge — small label chip used above section headings */
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-border
+      bg-white/[0.04] px-3 py-1 font-mono text-xs uppercase tracking-[0.18em]
+      text-text-muted backdrop-blur-glass;
+  }
+
+  /* Section vertical rhythm — consistent paddings across the landing page */
+  .section-pad {
+    @apply px-6 py-24 md:py-32 lg:px-8;
+  }
+
+  .container-max {
+    @apply mx-auto w-full max-w-7xl;
+  }
+}
+
+@layer utilities {
+  /* Subtle dotted grid overlay for hero / showcase backgrounds */
+  .bg-dotted-grid {
+    background-image: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.07) 1px,
+      transparent 1px
+    );
+    background-size: 32px 32px;
+  }
+
+  .bg-dotted-grid-fine {
+    background-image: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 18px 18px;
+  }
+
+  /* Animated conic glow used behind the hero orb */
+  .conic-glow {
+    background: conic-gradient(
+      from 180deg at 50% 50%,
+      rgba(124, 58, 237, 0) 0deg,
+      rgba(124, 58, 237, 0.6) 90deg,
+      rgba(6, 182, 212, 0.5) 180deg,
+      rgba(99, 102, 241, 0.6) 270deg,
+      rgba(124, 58, 237, 0) 360deg
+    );
+    filter: blur(40px);
+  }
+
+  /* Mask helpers for fading marquee edges */
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 12%,
+      black 88%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 12%,
+      black 88%,
+      transparent
+    );
+  }
+
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent);
+    mask-image: linear-gradient(to bottom, black 60%, transparent);
+  }
+
+  /* Perspective helper for 3D tilt cards */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+}
