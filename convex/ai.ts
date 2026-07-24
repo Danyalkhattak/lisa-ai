@@ -79,8 +79,8 @@ When someone wants to send an email:
 
 Important: You are just a chat assistant. The app handles email sending separately.`;
 
-/** Default model */
-const DEFAULT_MODEL = "gemini-3.5-flash-lite";
+/** Default model - Gemini 2.0 Flash (fast, cost-effective) */
+const DEFAULT_MODEL = "gemini-2.0-flash";
 
 /** Maximum messages for context */
 const MAX_CONTEXT_MESSAGES = 20;
