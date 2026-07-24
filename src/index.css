@@ -76,70 +76,46 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
-   Scrollbar Styling
+   Scrollbar Styling - ALL HIDDEN
+   Scroll functionality works, but no visible scrollbars
    ============================================ */
 
-/* Global scrollbar - subtle (not themed) */
+/* Hide ALL scrollbars globally - WebKit browsers */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
+  display: none;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+::-webkit-scrollbar-corner {
+  display: none;
 }
 
-/* Firefox - global subtle */
+/* Firefox - hide all scrollbars */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
+  scrollbar-width: none !important;
 }
 
 /* ============================================
-   Chat Area Scrollbar - Dark Purple Theme
-   Only applies to .chat-scrollbar (transcript area)
+   Chat Area - Scrollbar also hidden for consistency
    ============================================ */
 
 .chat-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  display: none;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-.chat-scrollbar::-webkit-scrollbar-track {
-  background: #09090B; /* Match main background */
-}
-
-.chat-scrollbar::-webkit-scrollbar-corner {
-  background: #09090B;
-}
-
-.chat-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(124, 58, 237, 0.5); /* Purple tint matching theme */
-  border-radius: 9999px;
-  border: 1px solid rgba(124, 58, 237, 0.3);
-}
-
-.chat-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(124, 58, 237, 0.7);
-  border-color: rgba(124, 58, 237, 0.5);
-}
-
-.chat-scrollbar::-webkit-scrollbar-thumb:active {
-  background-color: rgba(124, 58, 237, 0.9);
-}
-
-/* Firefox - chat area only */
 .chat-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(124, 58, 237, 0.5) #09090B;
+  scrollbar-width: none !important;
 }
 
 /* ============================================
@@ -373,7 +349,7 @@ h1, h2, h3, h4, h5, h6 {
   min-width: 44px;
 }
 
-/* Hide scrollbar but allow scrolling */
+/* Hide scrollbar but allow scrolling - now redundant since all are hidden */
 .scroll-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

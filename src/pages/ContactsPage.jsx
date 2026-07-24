@@ -5,7 +5,7 @@ import {
   Search,
   Edit2,
   Trash2,
-  Mail,
+  UserCircle,
   X,
   Check,
   UserPlus,
@@ -15,7 +15,7 @@ import { api } from "@convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 
 /**
- * Contacts Page - Simple CRUD for email contacts.
+ * Contacts Page - Simple CRUD for contacts.
  */
 
 export default function ContactsPage() {
@@ -30,15 +30,15 @@ export default function ContactsPage() {
   const [success, setSuccess] = useState("");
 
   // Queries - only run when userId is available
-  const contactsResult = userId
+  // Convex useQuery returns data DIRECTLY (not wrapped in {data, isLoading})
+  const contactsData = userId
     ? (searchQuery 
         ? useQuery(api.contacts.search, { query: searchQuery, userId })
         : useQuery(api.contacts.list, { userId }))
     : undefined;
     
-  // Safe access with defaults
-  const isLoading = contactsResult === undefined ? true : (contactsResult?.isLoading ?? false);
-  const contactsData = contactsResult?.data;
+  // Loading state: undefined means still loading
+  const isLoading = contactsData === undefined;
 
   // Mutations
   const createContact = useMutation(api.contacts.create);
@@ -102,7 +102,7 @@ export default function ContactsPage() {
       <header className="border-b border-white/10 bg-[#09090B]/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <h1 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-            <Mail className="w-5 h-5 text-purple-400" />
+            <UserCircle className="w-5 h-5 text-purple-400" />
             <span className="hidden sm:inline">Contacts</span>
           </h1>
           
@@ -224,10 +224,10 @@ export default function ContactsPage() {
             </div>
           ) : !contactsData || contactsData.length === 0 ? (
             <div className="text-center py-12">
-              <Mail className="w-12 h-12 mx-auto mb-4 text-gray-700" />
+              <UserCircle className="w-12 h-12 mx-auto mb-4 text-gray-700" />
               <p className="text-gray-500 mb-2">No contacts yet</p>
               <p className="text-gray-600 text-sm">
-                Add contacts to easily send emails via voice.
+                Add contacts to keep track of people.
               </p>
             </div>
           ) : (
@@ -240,10 +240,8 @@ export default function ContactsPage() {
                 className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors group"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-medium text-sm">
-                      {contact.name.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <img src="/favicon.png" alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-white font-medium truncate">{contact.name}</p>

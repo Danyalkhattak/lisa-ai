@@ -7,7 +7,6 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
-  Mail,
   User,
   Users,
   Settings,
@@ -15,7 +14,7 @@ import {
   MicOff,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useAction, useQuery } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
@@ -25,18 +24,9 @@ import { cn } from "@/lib/utils";
  * 
  * Features:
  * - Tap-to-Talk mode (press mic button to speak)
- * - Guided email workflow (Siri-like)
+ * - AI-powered responses via Gemini
  * - Female voice TTS
  */
-
-// Email workflow states
-const EMAIL = {
-  IDLE: 'idle',
-  ASKING_WHO: 'asking_who',
-  ASKING_WHAT: 'asking_what', 
-  CONFIRMING: 'confirming',
-  SENDING: 'sending',
-};
 
 export default function CallPage() {
   const { user } = useUser();
@@ -54,11 +44,6 @@ export default function CallPage() {
   const [interimText, setInterimText] = useState('');
   const [currentSpokenText, setCurrentSpokenText] = useState('');
   
-  // Email workflow
-  const [emailState, setEmailState] = useState(EMAIL.IDLE);
-  const [emailContact, setEmailContact] = useState(null);
-  const [emailDraft, setEmailDraft] = useState(null);
-  
   // Refs
   const recognitionRef = useRef(null);
   const mountedRef = useRef(true);
@@ -67,14 +52,6 @@ export default function CallPage() {
   // Convex
   const generateReply = useAction(api.ai.chat);
   const createConversation = useMutation(api.conversations.create);
-  const sendEmailMutation = useMutation(api.email.send);
-  
-  // For contact searching - ALWAYS call useQuery (React hooks rule)
-  const [emailSearchTerm, setEmailSearchTerm] = useState('');
-  const searchContactsResult = useQuery(
-    api.contacts.searchContacts,
-    emailSearchTerm ? { query: emailSearchTerm } : 'skip'
-  );
 
   // ==================== Speech Recognition ====================
   
@@ -187,216 +164,38 @@ export default function CallPage() {
     setIsProcessing(true);
     
     try {
-      // Cancel check
-      if (cleanText.toLowerCase().includes('cancel')) {
-        resetEmail();
-        await speak("Okay, cancelled.");
-        return;
+      // Create conversation if needed
+      if (!conversationIdRef.current) {
+        const convId = await createConversation({
+          title: cleanText.slice(0, 50) + (cleanText.length > 50 ? '...' : ''),
+        });
+        conversationIdRef.current = convId;
       }
 
-      // Yes/No during email confirmation
-      const lower = cleanText.toLowerCase().trim();
-      if ((lower.startsWith('yes') || lower.startsWith('sure') || lower.startsWith('ok')) 
-          && emailState === EMAIL.CONFIRMING && emailDraft) {
-        await doSendEmail();
-        return;
-      }
+      // Get AI response
+      const response = await generateReply({
+        message: cleanText,
+        conversationId: conversationIdRef.current,
+      });
 
-      if ((lower.startsWith('no') || lower.includes("don't"))
-          && (emailState === EMAIL.CONFIRMING || emailState === EMAIL.ASKING_WHO)) {
-        resetEmail();
-        await speak("No problem! Anything else?");
-        return;
-      }
+      if (!mountedRef.current) return;
 
-      // Email workflow states
-      if (emailState === EMAIL.ASKING_WHO) {
-        await handleRecipient(cleanText);
-        return;
+      // Speak the response
+      if (response && response.trim()) {
+        await speak(response);
       }
-
-      if (emailState === EMAIL.ASKING_WHAT) {
-        await generateDraft(cleanText);
-        return;
-      }
-
-      // Check email intent
-      if (isEmailIntent(cleanText)) {
-        const name = extractName(cleanText);
-        if (name) {
-          addLine('assistant', `Looking up ${name}...`);
-          await handleRecipient(name);
-        } else {
-          setEmailState(EMAIL.ASKING_WHO);
-          await speak("Who would you like to email?");
-        }
-        return;
-      }
-
-      // Normal chat
-      await handleChat(cleanText);
-      
     } catch (err) {
       console.error('[Lisa] Error:', err);
       if (mountedRef.current) {
-        addLine('assistant', 'Sorry, something went wrong. Could you repeat?');
+        setError(err.message || 'Something went wrong. Try again.');
+        addLine('assistant', `Sorry, I encountered an error: ${err.message}`);
       }
     } finally {
-      setIsProcessing(false);
-    }
-  }, [emailState, emailDraft]);
-
-  // ==================== Email Detection ====================
-  
-  function isEmailIntent(text) {
-    const lower = text.toLowerCase();
-    return lower.includes('send') && (lower.includes('email') || lower.includes('mail'));
-  }
-
-  function extractName(text) {
-    const patterns = [
-      /send\s+(?:an?\s+)?(?:email|mail)\s+to\s+(.+?)(?:\s*(?:and|about|$))/i,
-      /email\s+(?:to|for)\s+(.+?)$/i,
-    ];
-    for (const p of patterns) {
-      const m = text.match(p);
-      if (m?.[1]) return m[1].trim().replace(/[.!?,]$/, '');
-    }
-    return null;
-  }
-
-  // ==================== Email Handlers ====================
-
-  // Ref to track pending contact search (avoids stale closure issues)
-  const pendingContactSearchRef = useRef(null);
-
-  // Effect: Handle search results when they arrive
-  useEffect(() => {
-    if (!pendingContactSearchRef.current) return;
-    
-    const searchTerm = pendingContactSearchRef.current;
-    
-    // Check if we have results for this search
-    if (searchContactsResult && Array.isArray(searchContactsResult)) {
-      pendingContactSearchRef.current = null;
-      
-      const contacts = searchContactsResult;
-      const match = contacts.find(c => 
-        c.name.toLowerCase() === searchTerm.toLowerCase() ||
-        c.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      
-      // Use setTimeout to avoid setting state during render
-      setTimeout(async () => {
-        try {
-          if (match && mountedRef.current) {
-            setEmailContact(match);
-            setEmailState(EMAIL.ASKING_WHAT);
-            addLine('assistant', `Found ${match.name}. What should the email say?`);
-            await speak(`I found ${match.name}. What should the email say?`);
-          } else if (mountedRef.current) {
-            addLine('assistant', `Contact "${searchTerm}" not found.`);
-            await speak(`I couldn't find ${searchTerm} in your contacts.`);
-            setEmailState(EMAIL.IDLE);
-          }
-          // Reset search term after processing
-          setEmailSearchTerm('');
-        } catch (err) {
-          console.error('[Lisa] Contact lookup error:', err);
-          if (mountedRef.current) {
-            setEmailSearchTerm('');
-            setEmailState(EMAIL.IDLE);
-          }
-        }
-      }, 0);
-    }
-  }, [searchContactsResult]);
-
-  async function handleRecipient(name) {
-    try {
-      // Set pending search and trigger query
-      pendingContactSearchRef.current = name;
-      setEmailSearchTerm(name);
-      addLine('assistant', `Looking up ${name}...`);
-    } catch (err) {
-      console.error('[Lisa] Contact lookup error:', err);
-      await speak("Sorry, I had trouble looking up contacts.");
-    }
-  }
-
-  async function generateDraft(topic) {
-    try {
-      setEmailState(EMAIL.IDLE);
-      addLine('assistant', `Drafting email about: ${topic}...`);
-      
-      const result = await generateReply({
-        conversationId: 'draft',
-        message: `Write a short professional email about: ${topic}`,
-      });
-      
-      if (result?.content) {
-        const draft = result.content.replace(/```[\s\S]*?```/g, '').trim();
-        setEmailDraft(draft);
-        setEmailState(EMAIL.CONFIRMING);
-        
-        addLine('assistant', `Here's your draft:\n\n${draft}\n\nShould I send it?`);
-        await speak(`Here's your draft: ${draft}. Should I send it?`);
+      if (mountedRef.current) {
+        setIsProcessing(false);
       }
-    } catch (err) {
-      console.error('[Lisa] Draft error:', err);
-      await speak("Sorry, I had trouble drafting that email.");
     }
-  }
-
-  async function doSendEmail() {
-    if (!emailContact || !emailDraft) return;
-    
-    setEmailState(EMAIL.SENDING);
-    addLine('assistant', 'Sending email...');
-    
-    try {
-      await sendEmailMutation({
-        to: emailContact.email,
-        subject: `Message from Lisa AI`,
-        body: emailDraft,
-      });
-      
-      addLine('assistant', `✅ Email sent to ${emailContact.name}!`);
-      await speak(`Email sent to ${emailContact.name}!`);
-      resetEmail();
-    } catch (err) {
-      console.error('[Lisa] Send error:', err);
-      addLine('assistant', 'Failed to send email.');
-      await speak("Sorry, I couldn't send the email. Please try again.");
-      setEmailState(EMAIL.CONFIRMING);
-    }
-  }
-
-  function resetEmail() {
-    setEmailState(EMAIL.IDLE);
-    setEmailContact(null);
-    setEmailDraft(null);
-  }
-
-  async function handleChat(text) {
-    let convId = conversationIdRef.current;
-    if (!convId) {
-      convId = await createConversation({ title: 'Voice Call' });
-      if (!mountedRef.current) return;
-      conversationIdRef.current = convId;
-    }
-    
-    const result = await generateReply({
-      conversationId: convId,
-      message: text.trim(),
-    });
-    
-    if (!mountedRef.current) return;
-    
-    if (result?.content) {
-      await speak(result.content);
-    }
-  }
+  }, [generateReply, createConversation]);
 
   // ==================== TTS ====================
 
@@ -470,7 +269,6 @@ export default function CallPage() {
     setTranscriptLines([]);
     setError(null);
     conversationIdRef.current = null;
-    resetEmail();
   }, []);
 
   const endCall = useCallback(() => {
@@ -483,7 +281,6 @@ export default function CallPage() {
     setIsProcessing(false);
     setInterimText('');
     setCurrentSpokenText('');
-    resetEmail();
   }, [stopListening]);
 
   // Handle mic button press
@@ -523,10 +320,6 @@ export default function CallPage() {
     if (isProcessing) return { icon: Loader2, label: 'Thinking...', color: 'yellow', spin: true };
     if (isSpeaking) return { icon: Volume2, label: 'Speaking...', color: 'purple' };
     if (isListening) return { label: '🎤 Listening...', color: 'green' };
-    if (emailState === EMAIL.ASKING_WHO) return { icon: User, label: 'Who to email?', color: 'blue' };
-    if (emailState === EMAIL.ASKING_WHAT) return { icon: Mail, label: 'What to say?', color: 'blue' };
-    if (emailState === EMAIL.CONFIRMING) return { label: 'Confirm?', color: 'blue' };
-    if (emailState === EMAIL.SENDING) return { icon: Loader2, label: 'Sending...', color: 'blue', spin: true };
     return { label: isInCall ? 'Tap mic to speak' : 'Tap to start', color: 'gray' };
   };
 
@@ -545,12 +338,12 @@ export default function CallPage() {
       {/* Header */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 relative z-10">
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Avatar */}
+          {/* Avatar with custom favicon */}
           <div className={cn(
-            "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all",
+            "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all overflow-hidden",
             isInCall ? "bg-gradient-to-br from-green-400 to-emerald-500 animate-pulse" : "bg-gradient-to-br from-purple-500 to-cyan-500"
           )}>
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <img src="/favicon.png" alt="Lisa" className="w-full h-full object-cover" />
           </div>
           
           {/* Name + Status */}
@@ -563,7 +356,6 @@ export default function CallPage() {
               status.color === 'green' && "text-green-400",
               status.color === 'purple' && "text-purple-400",
               status.color === 'yellow' && "text-yellow-400",
-              status.color === 'blue' && "text-blue-400",
               status.color === 'gray' && "text-gray-500"
             )}>
               {status.icon && (

@@ -10,8 +10,8 @@ A voice-controlled AI assistant built for my university internship project.
 
 - **Tap-to-Talk Mode** — Press the mic button to speak, release when done
 - **Voice Responses** — Lisa speaks back with natural female TTS
-- **Email Workflow** — "Send email to Ali" → Lisa guides you step-by-step (**REAL emails via Resend**)
-- **Contacts CRUD** — Add, edit, delete email contacts
+- **AI-Powered Conversations** — Smart responses powered by Google Gemini
+- **Contacts Management** — Add, edit, delete contacts
 - **Authentication** — Secure login/signup with Clerk
 - **Responsive Design** — Works on mobile and desktop
 
@@ -43,27 +43,11 @@ npm run convex:dev
 # Required - Authentication & AI
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 GEMINI_API_KEY=AIza...
-
-# Required - For REAL email sending (FREE tier: 3000 emails/month)
-RESEND_API_KEY=re_your_key_here
-EMAIL_FROM=Lisa AI <onboarding@resend.dev>
 ```
 
 Get keys from:
 - [Clerk Dashboard](https://dashboard.clerk.com) → API Keys
 - [Google AI Studio](https://aistudio.google.com) → Get API Key
-- [Resend Dashboard](https://resend.com) → API Keys (FREE)
-
-### Setting Up Email (Required for Email Feature)
-
-1. **Sign up for Resend** (free): https://resend.com/signup
-2. **Get API Key**: Dashboard → API Keys → Create API Key
-3. **Add to Convex env**: 
-   ```bash
-   npx convex env set RESEND_API_KEY re_your_key_here
-   npx convex env set EMAIL_FROM "Lisa AI <onboarding@resend.dev>"
-   ```
-4. **Test it**: Use Lisa's voice command "Send email to [contact]"
 
 ---
 
@@ -78,19 +62,6 @@ Get keys from:
 4. Lisa processes & responds (voice + text)
 5. Tap mic again for next message
 6. Press End Call when done
-```
-
-### Email Workflow Example
-
-```
-You:  "Send email to Ali"
-Lisa: "What should it say?"
-
-You:  "Ask about the project deadline"
-Lisa: "Ready to send. Subject: 'Project Deadline'. Send?"
-
-You:  "Yes"
-Lisa: "Done! Email sent." ✅
 ```
 
 ---
@@ -113,10 +84,9 @@ lisa-ai/
 ├── convex/
 │   ├── ai.ts                  # Gemini AI integration
 │   ├── schema.ts              # Database schema
-│   ├── contacts.ts            # Contact CRUD
-│   └── email.ts               # Email sender
+│   └── contacts.ts            # Contact CRUD
 └── public/
-    └── favicon.svg
+    └── favicon.png            # Custom app icon
 ```
 
 ---
@@ -132,7 +102,6 @@ lisa-ai/
 | Clerk | 5.7+ | Authentication |
 | Convex | 1.14+ | Backend/Database |
 | Gemini 2.0 Flash | - | AI Model |
-| Resend API | - | Real Email Sending |
 | Web Speech API | - | Speech Recognition & TTS |
 
 ---
@@ -175,7 +144,7 @@ npm run preview
 - Google Gemini AI integration
 - React state management with refs for async operations
 - Authentication flow with Clerk
-- Guided conversational UI patterns
+- Conversational UI patterns
 - Responsive mobile-first design
 
 ---
@@ -183,9 +152,3 @@ npm run preview
 ## License
 
 MIT — University Internship Project 2026
-
----
-
-**Built by:** [Your Name]  
-**Duration:** [Month Year] – [Month Year]  
-**Supervisor:** [Supervisor Name]

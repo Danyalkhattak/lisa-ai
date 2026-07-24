@@ -28,16 +28,16 @@ export default function LandingPage() {
         transition={{ duration: 0.6 }}
         className="relative z-10 flex flex-col items-center gap-8 px-6"
       >
-        {/* Logo */}
+        {/* Logo - Custom Favicon */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.5 }}
           className="relative"
         >
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 p-[2px]">
-            <div className="w-full h-full rounded-full bg-[#09090B] flex items-center justify-center">
-              <Sparkles className="w-12 h-12 text-white" />
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 p-[3px]">
+            <div className="w-full h-full rounded-full bg-[#09090B] flex items-center justify-center overflow-hidden">
+              <img src="/favicon.png" alt="Lisa AI" className="w-20 h-20 object-cover" />
             </div>
           </div>
           
