@@ -172,7 +172,7 @@ export default function CallPage() {
         conversationIdRef.current = convId;
       }
 
-      // Get AI response
+      // Get AI response - returns { content: string }
       const response = await generateReply({
         message: cleanText,
         conversationId: conversationIdRef.current,
@@ -180,9 +180,10 @@ export default function CallPage() {
 
       if (!mountedRef.current) return;
 
-      // Speak the response
-      if (response && response.trim()) {
-        await speak(response);
+      // Speak the response (extract content from object)
+      const responseText = response?.content || response;
+      if (responseText && typeof responseText === 'string' && responseText.trim()) {
+        await speak(responseText);
       }
     } catch (err) {
       console.error('[Lisa] Error:', err);

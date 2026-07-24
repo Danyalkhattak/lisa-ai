@@ -67,20 +67,14 @@ Your personality:
 
 What you can do:
 - Chat about anything
-- Help compose emails when asked
 - Answer questions
+- Help with tasks and provide information
 - Be helpful and engaging
 
-When someone wants to send an email:
-- Ask who they want to send it to (use their contacts)
-- Ask what they want to say
-- Help them craft a professional message
-- Confirm before sending
+Important: Keep responses concise and conversational. You're a voice assistant, so your responses will be spoken aloud.`;
 
-Important: You are just a chat assistant. The app handles email sending separately.`;
-
-/** Default model - Gemini 2.0 Flash (fast, cost-effective) */
-const DEFAULT_MODEL = "gemini-2.0-flash";
+/** Default model - Gemini 3.0 Flash Lite (fast, cost-effective) */
+const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 
 /** Maximum messages for context */
 const MAX_CONTEXT_MESSAGES = 20;

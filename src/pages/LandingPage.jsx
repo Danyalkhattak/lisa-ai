@@ -35,11 +35,15 @@ export default function LandingPage() {
           transition={{ delay: 0.1, duration: 0.5 }}
           className="relative"
         >
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 p-[3px]">
-            <div className="w-full h-full rounded-full bg-[#09090B] flex items-center justify-center overflow-hidden">
-              <img src="/favicon.png" alt="Lisa AI" className="w-20 h-20 object-cover" />
-            </div>
-          </div>
+       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 p-[3px]">
+    <div className="w-full h-full rounded-full overflow-hidden">
+    <img
+      src="/favicon.png"
+      alt="Lisa AI"
+      className="w-full h-full object-cover rounded-full"
+    />
+  </div>
+</div>
           
           {/* Glow effect */}
           <div className="absolute inset-0 -m-6 rounded-full bg-gradient-to-br from-purple-500/20 to-cyan-500/20 blur-xl -z-10" />
