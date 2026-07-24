@@ -8,7 +8,6 @@ import { v } from "convex/values";
  *   users          - Synced from Clerk
  *   conversations  - Chat threads
  *   messages       - Messages within conversations
- *   contacts       - User's email contacts
  *   userSettings   - User preferences
  */
 
@@ -33,8 +32,8 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId", "deletedAt"])
-    .index("by_user_recent", ["userId", "lastMessageAt"]),
+  .index("by_user", ["userId", "deletedAt"])
+  .index("by_user_recent", ["userId", "lastMessageAt"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),
@@ -43,17 +42,8 @@ export default defineSchema({
     content: v.string(),
     createdAt: v.number(),
   })
-    .index("by_conversation", ["conversationId", "createdAt"])
-    .index("by_user", ["userId", "createdAt"]),
-
-  contacts: defineTable({
-    userId: v.string(),
-    name: v.string(),
-    email: v.string(),
-    createdAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_email", ["userId", "email"]),
+  .index("by_conversation", ["conversationId", "createdAt"])
+  .index("by_user", ["userId", "createdAt"]),
 
   userSettings: defineTable({
     userId: v.string(),

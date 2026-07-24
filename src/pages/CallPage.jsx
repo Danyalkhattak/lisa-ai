@@ -6,12 +6,11 @@ import {
   Volume2,
   Loader2,
   AlertCircle,
-  Sparkles,
-  User,
-  Users,
   Settings,
   Mic,
   MicOff,
+  X,
+  Home,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useAction } from "convex/react";
@@ -20,12 +19,13 @@ import { useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Lisa AI — Voice Assistant Interface
+ * CallPage — Premium Voice Assistant Interface
  * 
- * Features:
- * - Tap-to-Talk mode (press mic button to speak)
- * - AI-powered responses via Gemini
- * - Female voice TTS
+ * Design Philosophy:
+ * - Clean, focused interface
+ * - Clear status indicators
+ * - Smooth micro-interactions
+ * - Professional glassmorphism
  */
 
 export default function CallPage() {
@@ -124,7 +124,6 @@ export default function CallPage() {
     if (!recognition) return;
     
     try {
-      // Cancel any ongoing speech
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -164,7 +163,6 @@ export default function CallPage() {
     setIsProcessing(true);
     
     try {
-      // Create conversation if needed
       if (!conversationIdRef.current) {
         const convId = await createConversation({
           title: cleanText.slice(0, 50) + (cleanText.length > 50 ? '...' : ''),
@@ -172,7 +170,6 @@ export default function CallPage() {
         conversationIdRef.current = convId;
       }
 
-      // Get AI response - returns { content: string }
       const response = await generateReply({
         message: cleanText,
         conversationId: conversationIdRef.current,
@@ -180,7 +177,6 @@ export default function CallPage() {
 
       if (!mountedRef.current) return;
 
-      // Speak the response (extract content from object)
       const responseText = response?.content || response;
       if (responseText && typeof responseText === 'string' && responseText.trim()) {
         await speak(responseText);
@@ -218,7 +214,6 @@ export default function CallPage() {
       
       const utterance = new SpeechSynthesisUtterance(clean);
       
-      // Female voice selection
       const voices = window.speechSynthesis.getVoices();
       const female = voices.find(v => 
         /^(Samantha|Victoria|Karen|Tessa|Zira|Google US English Female)/i.test(v.name)
@@ -284,7 +279,6 @@ export default function CallPage() {
     setCurrentSpokenText('');
   }, [stopListening]);
 
-  // Handle mic button press
   const handleMicPress = useCallback(() => {
     if (!isInCall) {
       startCall();
@@ -303,7 +297,6 @@ export default function CallPage() {
   useEffect(() => {
     mountedRef.current = true;
     
-    // Load voices
     if (window.speechSynthesis) {
       window.speechSynthesis.getVoices();
       window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
@@ -318,10 +311,10 @@ export default function CallPage() {
   // ==================== Status Helpers ====================
 
   const getStatusConfig = () => {
-    if (isProcessing) return { icon: Loader2, label: 'Thinking...', color: 'yellow', spin: true };
-    if (isSpeaking) return { icon: Volume2, label: 'Speaking...', color: 'purple' };
-    if (isListening) return { label: '🎤 Listening...', color: 'green' };
-    return { label: isInCall ? 'Tap mic to speak' : 'Tap to start', color: 'gray' };
+    if (isProcessing) return { icon: Loader2, label: 'Thinking...', color: 'amber', spin: true };
+    if (isSpeaking) return { icon: Volume2, label: 'Speaking', color: 'violet' };
+    if (isListening) return { label: 'Listening', color: 'emerald' };
+    return { label: isInCall ? 'Ready' : 'Tap to start', color: 'slate' };
   };
 
   const status = getStatusConfig();
@@ -330,75 +323,107 @@ export default function CallPage() {
 
   return (
     <div className="h-screen w-full bg-[#09090B] flex flex-col overflow-hidden relative">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden sm:block">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+      {/* Animated Background - Refined */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className={cn(
+          "absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] transition-all duration-1000 ease-out",
+          isListening ? "bg-emerald-500/18" : isSpeaking ? "bg-violet-500/15" : "bg-violet-500/8"
+        )} />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-[100px]" />
+        
+        {/* Subtle noise texture */}
+        <div 
+          className="absolute inset-0 opacity-[0.012]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
+        />
       </div>
 
-      {/* Header */}
+      {/* Header - Premium Glass Style */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 relative z-10">
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-3 sm:gap-4">
           {/* Avatar with custom favicon */}
-          <div className={cn(
-            "w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all overflow-hidden",
-            isInCall ? "bg-gradient-to-br from-green-400 to-emerald-500 animate-pulse" : "bg-gradient-to-br from-purple-500 to-cyan-500"
-          )}>
-            <img src="/favicon.png" alt="Lisa" className="w-full h-full object-cover" />
-          </div>
+          <img 
+            src="/favicon.png" 
+            alt="Lisa" 
+            className={cn(
+              "w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover transition-all duration-300",
+              isListening && "ring-2 ring-emerald-500/50",
+              isSpeaking && "ring-2 ring-violet-500/50"
+            )}
+          />
           
           {/* Name + Status */}
           <div>
-            <h1 className="text-white font-semibold text-base sm:text-lg">Lisa</h1>
+            <h1 className="text-white font-semibold text-base sm:text-lg tracking-tight">Lisa</h1>
             
-            {/* Inline Status Indicator */}
-            <div className={cn(
-              "flex items-center gap-1.5 text-xs font-medium transition-colors",
-              status.color === 'green' && "text-green-400",
-              status.color === 'purple' && "text-purple-400",
-              status.color === 'yellow' && "text-yellow-400",
-              status.color === 'gray' && "text-gray-500"
-            )}>
-              {status.icon && (
-                <status.icon className={cn("w-3 h-3", status.spin && "animate-spin")} />
+            <motion.div 
+              layout
+              className={cn(
+                "flex items-center gap-1.5 text-xs font-medium transition-colors duration-300",
+                status.color === 'emerald' && "text-emerald-400",
+                status.color === 'violet' && "text-violet-400",
+                status.color === 'amber' && "text-amber-400",
+                status.color === 'slate' && "text-gray-500"
               )}
-              {status.label}
-            </div>
+            >
+              {status.icon && (
+                <status.icon className={cn("w-3.5 h-3.5", status.spin && "animate-spin")} />
+              )}
+              <span>{status.label}</span>
+              
+              {/* Animated dots when listening/speaking */}
+              {(isListening || isSpeaking) && (
+                <span className="flex gap-0.5 ml-1">
+                  <span className="w-1 h-1 rounded-full bg-current" style={{ animation: 'bounce 0.6s infinite 0ms' }} />
+                  <span className="w-1 h-1 rounded-full bg-current" style={{ animation: 'bounce 0.6s infinite 150ms' }} />
+                  <span className="w-1 h-1 rounded-full bg-current" style={{ animation: 'bounce 0.6s infinite 300ms' }} />
+                </span>
+              )}
+            </motion.div>
           </div>
         </div>
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
-          {/* Contacts button */}
+          {/* Home button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => { if (isInCall) endCall(); navigate('/contacts'); }}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-colors"
-            title="Contacts"
+            onClick={() => { if (isInCall) endCall(); navigate('/'); }}
+            className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.10] backdrop-blur-sm transition-all"
+            title="Home"
           >
-            <Users className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
+            <Home className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
           </motion.button>
           
+
           {/* Settings button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => { if (isInCall) endCall(); navigate('/settings'); }}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-colors"
+            className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.10] backdrop-blur-sm transition-all"
             title="Settings"
           >
             <Settings className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
           </motion.button>
           
-          {/* Live badge - hidden on small screens */}
-          {isInCall && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-green-400 font-medium">Ready</span>
-            </motion.div>
-          )}
+          {/* Live badge */}
+          <AnimatePresence>
+            {isInCall && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }} 
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400 font-medium">Live</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
@@ -406,55 +431,116 @@ export default function CallPage() {
       <main className="flex-1 flex flex-col relative z-10 px-4 sm:px-6 py-3 sm:py-4 overflow-hidden">
         
         {/* Transcript Area */}
-        <div className="flex-1 max-w-2xl mx-auto w-full overflow-y-auto py-4 space-y-3 chat-scrollbar">
-          <AnimatePresence initial={false}>
-            {transcriptLines.map((line, idx) => (
-              <motion.div key={`${idx}-${line.time}`}
-                initial={{ opacity: 0, y: 10, x: line.role === 'user' ? 20 : -20 }}
-                animate={{ opacity: 1, y: 0, x: 0 }}
-                className={cn("flex", line.role === 'user' ? "justify-end" : "justify-start")}>
-                <div className={cn(
-                  "max-w-[90%] sm:max-w-[85%] px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed",
-                  line.role === 'user'
-                    ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-100 border border-cyan-500/30 rounded-br-md"
-                    : "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-100 border border-purple-500/30 rounded-bl-md"
-                )}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs opacity-60">{line.role === 'user' ? 'You' : 'Lisa'}</span>
-                    <span className="text-xs opacity-40">{line.time}</span>
-                  </div>
-                  <p>{line.text}</p>
-                </div>
+        <div className="flex-1 max-w-3xl mx-auto w-full overflow-y-auto py-4 space-y-3 scroll-hide">
+          {!isInCall && transcriptLines.length === 0 ? (
+            /* Empty State - Premium */
+            <div className="h-full flex flex-col items-center justify-center text-center px-6">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="relative mb-8"
+              >
+                <img src="/favicon.png" alt="Lisa" className="w-24 h-24 rounded-2xl object-cover opacity-60" />
               </motion.div>
-            ))}
-          </AnimatePresence>
-          
-          {/* Interim text (user speaking) */}
-          {interimText && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              className="flex justify-end"
-            >
-              <div className="max-w-[90%] sm:max-w-[85%] px-4 py-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300/80 rounded-br-md text-sm">
-                {interimText}
-                <span className="inline-block w-1 h-4 bg-cyan-400 ml-1 animate-pulse" />
-              </div>
-            </motion.div>
-          )}
+              
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.5 }}
+                className="text-2xl font-semibold text-white mb-3 font-['Space_Grotesk',sans-serif]"
+              >
+                Start a conversation
+              </motion.h2>
+              
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45, duration: 0.5 }}
+                className="text-gray-500 text-sm max-w-xs leading-relaxed"
+              >
+                Tap the microphone below and speak naturally. Lisa will respond.
+              </motion.p>
+              
+              {/* Hint cards */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55, duration: 0.5 }}
+                className="flex flex-wrap gap-2 mt-8 justify-center"
+              >
+                {["What's the weather?", "Tell me a joke", "Explain AI"].map((hint) => (
+                  <span key={hint} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-gray-500 text-xs">
+                    "{hint}"
+                  </span>
+                ))}
+              </motion.div>
+            </div>
+          ) : (
+            <>
+              <AnimatePresence initial={false} mode="popLayout">
+                {transcriptLines.map((line, idx) => (
+                  <motion.div
+                    key={`${idx}-${line.time}`}
+                    layout
+                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn("flex", line.role === 'user' ? "justify-end" : "justify-start")}
+                  >
+                    <div className={cn(
+                      "max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed",
+                      line.role === 'user'
+                        ? "bg-gradient-to-br from-cyan-500/12 to-blue-500/12 text-cyan-100 border border-cyan-500/15 rounded-br-md"
+                        : "bg-gradient-to-br from-violet-500/12 to-fuchsia-500/12 text-violet-100 border border-violet-500/15 rounded-bl-md"
+                    )}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[11px] font-medium uppercase tracking-wider opacity-60">
+                          {line.role === 'user' ? 'You' : 'Lisa'}
+                        </span>
+                        <span className="text-[11px] opacity-40">{line.time}</span>
+                      </div>
+                      <p className="text-[15px]">{line.text}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              
+              {/* Interim text (user speaking) */}
+              <AnimatePresence>
+                {interimText && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 8 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="flex justify-end"
+                  >
+                    <div className="max-w-[85%] sm:max-width-[75%] px-4 py-3 rounded-2xl bg-cyan-500/8 border border-cyan-500/12 text-cyan-300/80 rounded-br-md text-sm">
+                      {interimText}
+                      <span className="inline-block w-1.5 h-4 bg-cyan-400 ml-1.5 animate-pulse rounded-full" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-          {/* Current spoken text (Lisa speaking) */}
-          {currentSpokenText && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              className="flex justify-start"
-            >
-              <div className="max-w-[90%] sm:max-w-[85%] px-4 py-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300/80 rounded-bl-md text-sm">
-                {currentSpokenText}
-                <span className="inline-block w-1 h-4 bg-purple-400 ml-1 animate-pulse" />
-              </div>
-            </motion.div>
+              {/* Current spoken text (Lisa speaking) */}
+              <AnimatePresence>
+                {currentSpokenText && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 8 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="flex justify-start"
+                  >
+                    <div className="max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl bg-violet-500/8 border border-violet-500/12 text-violet-300/80 rounded-bl-md text-sm">
+                      {currentSpokenText}
+                      <span className="inline-block w-1.5 h-4 bg-violet-400 ml-1.5 animate-pulse rounded-full" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           )}
         </div>
 
@@ -462,55 +548,86 @@ export default function CallPage() {
         <AnimatePresence>
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="max-w-2xl mx-auto w-full mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-red-400 text-sm"
+              initial={{ opacity: 0, y: 12, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -12, height: 0 }}
+              className="max-w-3xl mx-auto w-full mb-4 overflow-hidden"
             >
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
+              <div className="p-3.5 rounded-xl bg-red-500/8 border border-red-500/15 flex items-center gap-3 text-red-400 text-sm backdrop-blur-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="flex-1">{error}</span>
+                <button 
+                  onClick={() => setError(null)} 
+                  className="p-1 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Controls Area */}
-        <div className="flex-shrink-0 pb-6 sm:pb-8">
-          <div className="max-w-2xl mx-auto flex items-center justify-center gap-4">
+        {/* Controls Area - Premium styling */}
+        <div className="flex-shrink-0 pb-6 sm:pb-8 pt-4">
+          <div className="max-w-3xl mx-auto flex items-center justify-center gap-5">
             
-            {/* End Call Button (only show when in call) */}
-            {isInCall && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={endCall}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/25 transition-colors"
-                title="End Call"
-              >
-                <PhoneOff className="w-6 h-6 text-white" />
-              </motion.button>
-            )}
+            {/* End Call Button */}
+            <AnimatePresence>
+              {isInCall && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={endCall}
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 flex items-center justify-center shadow-lg shadow-red-500/30 transition-all"
+                  title="End call"
+                >
+                  <PhoneOff className="w-6 h-6 text-white" />
+                </motion.button>
+              )}
+            </AnimatePresence>
 
-            {/* Main Microphone Button - TAP TO TALK */}
+            {/* Main Microphone Button - Enhanced */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={!isProcessing && !isSpeaking ? { scale: 1.04 } : {}}
+              whileTap={{ scale: 0.92 }}
               onClick={handleMicPress}
               disabled={isProcessing || isSpeaking}
               className={cn(
-                "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-lg transition-all duration-200",
+                "relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-300 ease-out",
                 isListening 
-                  ? "bg-green-500 shadow-green-500/40 animate-pulse scale-110" 
+                  ? "bg-gradient-to-br from-emerald-400 to-green-500 shadow-2xl shadow-emerald-500/40 scale-105" 
                   : isInCall 
-                    ? "bg-gradient-to-br from-purple-500 to-cyan-500 shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105"
-                    : "bg-gradient-to-br from-purple-500 to-pink-500 shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105",
-                (isProcessing || isSpeaking) && "opacity-50 cursor-not-allowed"
+                    ? "bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/40 hover:scale-[1.02]"
+                    : "bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/40 hover:scale-[1.02]",
+                (isProcessing || isSpeaking) && "opacity-75 cursor-not-allowed"
               )}
-              title={isListening ? "Tap to stop" : isInCall ? "Tap to speak" : "Start Conversation"}
+              title={isListening ? "Tap to stop" : isInCall ? "Tap to speak" : "Start conversation"}
             >
+              {/* Pulse ring effect when active */}
+              {(isListening || isSpeaking) && (
+                <>
+                  <motion.div
+                    className="absolute inset-0 rounded-full bg-current"
+                    style={{ color: isListening ? 'rgb(16, 185, 129)' : 'rgb(139, 92, 246)' }}
+                    animate={{ scale: [1, 1.6], opacity: [0.4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                  />
+                  <motion.div
+                    className="absolute inset-0 rounded-full bg-current"
+                    style={{ color: isListening ? 'rgb(16, 185, 129)' : 'rgb(139, 92, 246)' }}
+                    animate={{ scale: [1, 1.4], opacity: [0.3, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.3 }}
+                  />
+                </>
+              )}
+              
               {isListening ? (
-                <Mic className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                <Mic className="w-8 h-8 sm:w-10 sm:h-10 text-white relative z-10" />
               ) : (
-                <MicOff className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                <MicOff className="w-8 h-8 sm:w-10 sm:h-10 text-white/90 relative z-10" />
               )}
             </motion.button>
 
@@ -518,15 +635,24 @@ export default function CallPage() {
             {!isInCall && <div className="w-14 h-14 sm:w-16 sm:h-16" />}
           </div>
           
-          {/* Instruction Text */}
-          <p className="text-center mt-4 text-gray-500 text-xs sm:text-sm">
+          {/* Instruction Text - Refined */}
+          <motion.p 
+            key={isInCall ? 'in-call' : 'idle'}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mt-5 text-gray-500 text-xs sm:text-sm font-medium"
+          >
             {isInCall 
               ? isListening 
-                ? "🎤 Listening... Tap mic to stop" 
-                : "Tap the microphone to speak"
-              : "Tap the microphone to start"
+                ? "Listening... tap to stop" 
+                : isProcessing 
+                  ? "Thinking..." 
+                  : isSpeaking 
+                    ? "Speaking..."
+                    : "Tap microphone to speak"
+              : "Tap microphone to begin"
             }
-          </p>
+          </motion.p>
         </div>
       </main>
     </div>

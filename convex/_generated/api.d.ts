@@ -11,7 +11,6 @@
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
 import type * as clerkWebhook from "../clerkWebhook.js";
-import type * as contacts from "../contacts.js";
 import type * as conversations from "../conversations.js";
 import type * as lib from "../lib.js";
 import type * as messages from "../messages.js";
@@ -29,7 +28,6 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   auth: typeof auth;
   clerkWebhook: typeof clerkWebhook;
-  contacts: typeof contacts;
   conversations: typeof conversations;
   lib: typeof lib;
   messages: typeof messages;

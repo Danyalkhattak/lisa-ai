@@ -9,14 +9,13 @@ const LandingPage = lazy(() => import("@pages/LandingPage"));
 const SignInPage = lazy(() => import("@pages/SignInPage"));
 const SignUpPage = lazy(() => import("@pages/SignUpPage"));
 const CallPage = lazy(() => import("@pages/CallPage"));
-const ContactsPage = lazy(() => import("@pages/ContactsPage"));
 const SettingsPage = lazy(() => import("@pages/SettingsPage"));
 const NotFoundPage = lazy(() => import("@pages/NotFoundPage"));
 
 function PageLoader() {
   return (
     <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
     </div>
   );
 }
@@ -49,9 +48,6 @@ export default function App() {
           
           {/* Protected - Main */}
           <Route path={ROUTES.CALL} element={<ProtectedRoute><CallPage /></ProtectedRoute>} />
-          
-          {/* Protected - Secondary */}
-          <Route path={ROUTES.CONTACTS} element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
           <Route path={ROUTES.SETTINGS} element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           
           {/* 404 */}

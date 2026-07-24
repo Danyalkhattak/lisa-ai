@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,18 +10,23 @@ import {
   LogOut,
   Check,
   AlertTriangle,
+  User,
+  Shield,
+  Sparkles,
+  ArrowLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { cn } from "@/lib/utils";
 
 /**
- * Settings Page - Minimal settings for Lisa AI.
+ * SettingsPage — Premium Settings UI
  * 
- * Features:
- * - Enable/Disable voice responses
- * - Clear conversation history
- * - Logout
+ * Design Philosophy:
+ * - Clean card-based layout
+ * - Clear visual hierarchy
+ * - Professional interactions
  */
 
 export default function SettingsPage() {
@@ -57,164 +62,271 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#09090B]">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-[#09090B]/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-semibold text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-purple-400" />
-            Settings
-          </h1>
+      {/* Header - Premium Style */}
+      <header className="sticky top-0 z-20 bg-[#09090B]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center gap-3">
+          {/* Back button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/')}
+            className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-400" />
+          </motion.button>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 border border-violet-500/20 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-violet-400" />
+            </div>
+            <h1 className="text-lg sm:text-xl font-semibold text-white tracking-tight font-['Space_Grotesk',sans-serif]">Settings</h1>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {/* User Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10"
-        >
-          <img
-            src={user?.imageUrl || `https://ui-avatars.com/api/?name=${user?.firstName || 'U'}&background=7c3aed&color=fff`}
-            alt={user?.firstName}
-            className="w-14 h-14 rounded-full"
-          />
-          <div>
-            <p className="text-white font-medium text-lg">
-              {user?.firstName} {user?.lastName}
-            </p>
-            <p className="text-gray-500 text-sm">{user?.emailAddresses?.[0]?.emailAddress}</p>
-          </div>
-        </motion.div>
-
-        {/* Voice Settings */}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+        
+        {/* Profile Card - Enhanced */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-2"
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Voice</h2>
+          <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              {/* Avatar with gradient border */}
+              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 p-[2px] shadow-lg shadow-violet-500/20">
+                <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#09090B] flex items-center justify-center">
+                  {user?.imageUrl ? (
+                    <img 
+                      src={user.imageUrl} 
+                      alt={user?.firstName} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-8 h-8 text-gray-400" />
+                  )}
+                </div>
+              </div>
+              
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-lg truncate font-['Space_Grotesk',sans-serif]">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-gray-500 text-sm truncate mt-0.5">
+                  {user?.emailAddresses?.[0]?.emailAddress}
+                </p>
+              </div>
+
+              {/* Status badge */}
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400 font-medium">Active</span>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Voice Settings - Enhanced */}
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="space-y-3"
+        >
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 flex items-center gap-2">
+            <Volume2 className="w-3.5 h-3.5" />
+            Voice
+          </h2>
           
-          <div className="bg-white/5 border border-white/10 rounded-xl divide-y divide-white/10">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl divide-y divide-white/[0.04] backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setVoiceEnabled(!voiceEnabled)}
-              className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group"
             >
               <div className="flex items-center gap-3">
-                {voiceEnabled ? (
-                  <Volume2 className="w-5 h-5 text-purple-400" />
-                ) : (
-                  <VolumeX className="w-5 h-5 text-gray-500" />
-                )}
-                <span className="text-white">Voice Responses</span>
-              </div>
-              <div className={cn(
-                "w-12 h-7 rounded-full transition-colors relative",
-                voiceEnabled ? "bg-purple-500" : "bg-gray-600"
-              )}>
                 <div className={cn(
-                  "absolute top-1 w-5 h-5 rounded-full bg-white transition-transform",
+                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                  voiceEnabled 
+                    ? "bg-violet-500/15 text-violet-400" 
+                    : "bg-white/[0.04] text-gray-500"
+                )}>
+                  {voiceEnabled ? (
+                    <Volume2 className="w-5 h-5" />
+                  ) : (
+                    <VolumeX className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-medium text-[15px]">Voice Responses</p>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {voiceEnabled ? "Lisa speaks responses aloud" : "Text-only mode"}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Toggle Switch - Enhanced */}
+              <div 
+                onClick={(e) => { e.stopPropagation(); setVoiceEnabled(!voiceEnabled); }}
+                className={cn(
+                  "relative w-12 h-7 rounded-full cursor-pointer transition-all duration-300",
+                  voiceEnabled 
+                    ? "bg-gradient-to-r from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/25" 
+                    : "bg-white/10"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300",
                   voiceEnabled ? "translate-x-6" : "translate-x-1"
                 )} />
               </div>
             </button>
-
-            <p className="px-4 pb-4 text-sm text-gray-500">
-              {voiceEnabled 
-                ? "Lisa will speak her responses aloud." 
-                : "Responses will be shown as text only."}
-            </p>
           </div>
         </motion.section>
 
-        {/* Data Management */}
+        {/* Data Management - Enhanced */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-2"
+          transition={{ delay: 0.1, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="space-y-3"
         >
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Data</h2>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 flex items-center gap-2">
+            <Trash2 className="w-3.5 h-3.5" />
+            Data
+          </h2>
           
-          <div className="bg-white/5 border border-white/10 rounded-xl divide-y divide-white/10">
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl divide-y divide-white/[0.04] backdrop-blur-sm overflow-hidden">
             {!showClearConfirm ? (
               <button
                 onClick={() => setShowClearConfirm(true)}
-                className="w-full flex items-center justify-between p-4 hover:bg-red-500/10 transition-colors group"
+                className="w-full flex items-center gap-3 p-4 hover:bg-red-500/5 transition-colors group"
               >
-                <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 group-hover:bg-red-500/15 transition-colors flex items-center justify-center">
                   <Trash2 className="w-5 h-5 text-red-400" />
-                  <span className="text-white group-hover:text-red-400 transition-colors">
-                    Clear Conversation History
-                  </span>
                 </div>
+                <div className="text-left flex-1">
+                  <p className="text-white font-medium group-hover:text-red-400 transition-colors text-[15px]">
+                    Clear Conversation History
+                  </p>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Permanently delete all conversations
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-red-400/50 transition-colors" />
               </button>
             ) : (
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-3 text-yellow-400">
-                  <AlertTriangle className="w-5 h-5" />
-                  <span>Are you sure? This cannot be undone.</span>
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-4 space-y-4"
+              >
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/8 border border-amber-500/15">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-400 text-sm">Are you sure?</p>
+                    <p className="text-xs text-amber-400/70 mt-1">This action cannot be undone.</p>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     onClick={handleClearHistory}
-                    className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-all shadow-lg shadow-red-500/20"
                   >
                     Yes, Clear All
                   </button>
                   <button
                     onClick={() => setShowClearConfirm(false)}
-                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/10 text-white text-sm font-medium transition-all border border-white/[0.08]"
                   >
                     Cancel
                   </button>
                 </div>
-              </div>
-            )}
-
-            {cleared && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mx-4 mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                Conversation history cleared!
               </motion.div>
             )}
+
+            {/* Success message */}
+            <AnimatePresence>
+              {cleared && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mx-4 mb-4 p-3.5 rounded-xl bg-emerald-500/8 border border-emerald-500/15 flex items-center gap-2.5 text-emerald-400 text-sm backdrop-blur-sm">
+                    <Check className="w-4 h-4" />
+                    Conversation history cleared successfully
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.section>
 
-        {/* Account */}
+        {/* Account Actions - Enhanced */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-2"
+          transition={{ delay: 0.15, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="space-y-3"
         >
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Account</h2>
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 flex items-center gap-2">
+            <User className="w-3.5 h-3.5" />
+            Account
+          </h2>
           
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-red-500/10 transition-colors group"
+            className="w-full flex items-center gap-3 p-4 bg-white/[0.02] border border-white/[0.06] rounded-2xl hover:bg-red-500/5 hover:border-red-500/15 transition-all group"
           >
-            <LogOut className="w-5 h-5 text-red-400" />
-            <span className="text-white group-hover:text-red-400 transition-colors">
-              Sign Out
-            </span>
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 group-hover:bg-red-500/15 transition-colors flex items-center justify-center">
+              <LogOut className="w-5 h-5 text-red-400" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-white font-medium group-hover:text-red-400 transition-colors text-[15px]">
+                Sign Out
+              </span>
+              <p className="text-xs text-gray-500 mt-0.5">Sign out of your account</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-red-400/50 transition-colors" />
           </button>
         </motion.section>
 
-        {/* App Info */}
+        {/* App Info Card - Premium footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="pt-8 text-center text-xs text-gray-600 space-y-1"
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="pt-8 pb-4"
         >
-          <p>Lisa AI v1.0.0</p>
-          <p>Your friendly voice assistant</p>
+          <div className="text-center space-y-4">
+            {/* Logo */}
+            <img src="/favicon.png" alt="Lisa AI" className="w-16 h-16 rounded-2xl object-cover" />
+            
+            <div className="space-y-1">
+              <p className="text-white font-semibold font-['Space_Grotesk',sans-serif]">Lisa AI</p>
+              <p className="text-xs text-gray-600">Version 1.0.0</p>
+            </div>
+            
+            <div className="flex items-center justify-center gap-5 pt-2">
+              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                <Sparkles className="w-3.5 h-3.5 text-violet-500/60" />
+                <span>Powered by Gemini</span>
+              </div>
+              <div className="w-px h-3 bg-white/10" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                <Shield className="w-3.5 h-3.5 text-emerald-500/60" />
+                <span>Secured by Clerk</span>
+              </div>
+            </div>
+            
+            <p className="text-xs text-gray-700 pt-2">
+              Made with care for better conversations
+            </p>
+          </div>
         </motion.div>
       </main>
     </div>
