@@ -11,6 +11,8 @@ import {
   User,
   Users,
   Settings,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useAction, useQuery } from "convex/react";
@@ -22,8 +24,7 @@ import { cn } from "@/lib/utils";
  * Lisa AI — Voice Assistant Interface
  * 
  * Features:
- * - Always-listening mode (no tap needed)
- * - Interruption handling (stop speaking when user talks)
+ * - Tap-to-Talk mode (press mic button to speak)
  * - Guided email workflow (Siri-like)
  * - Female voice TTS
  */
@@ -60,17 +61,20 @@ export default function CallPage() {
   
   // Refs
   const recognitionRef = useRef(null);
-  const processingRef = useRef(false);
   const mountedRef = useRef(true);
-  const silenceTimerRef = useRef(null);
-  const finalTranscriptRef = useRef('');
-  const restartTimerRef = useRef(null);
   const conversationIdRef = useRef(null);
   
   // Convex
   const generateReply = useAction(api.ai.chat);
   const createConversation = useMutation(api.conversations.create);
   const sendEmailMutation = useMutation(api.email.send);
+  
+  // For contact searching - ALWAYS call useQuery (React hooks rule)
+  const [emailSearchTerm, setEmailSearchTerm] = useState('');
+  const searchContactsResult = useQuery(
+    api.contacts.searchContacts,
+    emailSearchTerm ? { query: emailSearchTerm } : 'skip'
+  );
 
   // ==================== Speech Recognition ====================
   
@@ -85,8 +89,9 @@ export default function CallPage() {
     
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
     
     recognition.onresult = (event) => {
       if (!mountedRef.current) return;
@@ -105,92 +110,141 @@ export default function CallPage() {
       
       if (interim) {
         setInterimText(interim);
-        // Handle interruption
-        if (isSpeaking && window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-          setIsSpeaking(false);
-          setCurrentSpokenText('');
-        }
-        resetSilenceTimer();
       }
       
       if (final) {
-        finalTranscriptRef.current += final;
-        resetSilenceTimer();
+        setInterimText('');
+        processAndSend(final);
       }
     };
     
     recognition.onerror = (event) => {
+      console.error('[Lisa] Speech error:', event.error);
       if (!mountedRef.current) return;
+      
       if (event.error === 'not-allowed') {
         setError('Microphone permission denied.');
-      } else if (isInCall) {
-        setTimeout(() => startListening(), 500);
       }
+      
+      setIsListening(false);
     };
     
     recognition.onend = () => {
-      if (!mountedRef.current) return;
-      setIsListening(false);
-      
-      // Process any remaining text
-      if (finalTranscriptRef.current.trim() && !processingRef.current) {
-        processAndSend(finalTranscriptRef.current);
-        finalTranscriptRef.current = '';
-      }
-      
-      // Auto-restart if still in call
-      if (isInCall && !processingRef.current) {
-        restartTimerRef.current = setTimeout(() => {
-          if (mountedRef.current && isInCall) startListening();
-        }, 200);
-      }
-    };
-    
-    recognition.onstart = () => {
       if (mountedRef.current) {
-        setIsListening(true);
-        setError(null);
+        setIsListening(false);
       }
     };
     
     recognitionRef.current = recognition;
     return recognition;
-  }, [isSpeaking, isInCall]);
-
-  const resetSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    
-    silenceTimerRef.current = setTimeout(() => {
-      if (finalTranscriptRef.current.trim() && !processingRef.current && mountedRef.current) {
-        const text = finalTranscriptRef.current.trim();
-        finalTranscriptRef.current = '';
-        processAndSend(text);
-      }
-    }, 1500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startListening = useCallback(() => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || isProcessing || isSpeaking) return;
+    
     const recognition = initRecognition();
     if (!recognition) return;
     
     try {
+      // Cancel any ongoing speech
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      
       recognition.abort();
       setTimeout(() => {
-        if (mountedRef.current) recognition.start();
+        if (mountedRef.current) {
+          recognition.start();
+          setIsListening(true);
+          setInterimText('');
+          setError(null);
+        }
       }, 100);
     } catch (e) {
       console.error('[Lisa] Start error:', e);
+      setIsListening(false);
     }
-  }, [initRecognition]);
+  }, [initRecognition, isProcessing, isSpeaking]);
 
   const stopListening = useCallback(() => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    if (recognitionRef.current) try { recognitionRef.current.stop(); } catch (e) {}
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (e) {}
+    }
     setIsListening(false);
   }, []);
+
+  // ==================== Core Processing ====================
+
+  const processAndSend = useCallback(async (text) => {
+    if (!text.trim() || !mountedRef.current) return;
+    
+    console.log('[Lisa] Processing:', text.trim());
+    const cleanText = text.trim();
+    setInterimText('');
+    addLine('user', cleanText);
+    
+    setIsProcessing(true);
+    
+    try {
+      // Cancel check
+      if (cleanText.toLowerCase().includes('cancel')) {
+        resetEmail();
+        await speak("Okay, cancelled.");
+        return;
+      }
+
+      // Yes/No during email confirmation
+      const lower = cleanText.toLowerCase().trim();
+      if ((lower.startsWith('yes') || lower.startsWith('sure') || lower.startsWith('ok')) 
+          && emailState === EMAIL.CONFIRMING && emailDraft) {
+        await doSendEmail();
+        return;
+      }
+
+      if ((lower.startsWith('no') || lower.includes("don't"))
+          && (emailState === EMAIL.CONFIRMING || emailState === EMAIL.ASKING_WHO)) {
+        resetEmail();
+        await speak("No problem! Anything else?");
+        return;
+      }
+
+      // Email workflow states
+      if (emailState === EMAIL.ASKING_WHO) {
+        await handleRecipient(cleanText);
+        return;
+      }
+
+      if (emailState === EMAIL.ASKING_WHAT) {
+        await generateDraft(cleanText);
+        return;
+      }
+
+      // Check email intent
+      if (isEmailIntent(cleanText)) {
+        const name = extractName(cleanText);
+        if (name) {
+          addLine('assistant', `Looking up ${name}...`);
+          await handleRecipient(name);
+        } else {
+          setEmailState(EMAIL.ASKING_WHO);
+          await speak("Who would you like to email?");
+        }
+        return;
+      }
+
+      // Normal chat
+      await handleChat(cleanText);
+      
+    } catch (err) {
+      console.error('[Lisa] Error:', err);
+      if (mountedRef.current) {
+        addLine('assistant', 'Sorry, something went wrong. Could you repeat?');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [emailState, emailDraft]);
 
   // ==================== Email Detection ====================
   
@@ -211,179 +265,110 @@ export default function CallPage() {
     return null;
   }
 
-  // ==================== Core Processing ====================
-
-  const processAndSend = useCallback(async (text) => {
-    if (!text.trim() || processingRef.current || !mountedRef.current) return;
-    
-    stopListening();
-    setInterimText('');
-    addLine('user', text.trim());
-    
-    processingRef.current = true;
-    setIsProcessing(true);
-    
-    try {
-      // Cancel check
-      if (text.toLowerCase().includes('cancel')) {
-        resetEmail();
-        await speak("Okay, cancelled.");
-        return;
-      }
-
-      // Yes/No during email confirmation
-      const lower = text.toLowerCase().trim();
-      if ((lower.startsWith('yes') || lower.startsWith('sure') || lower.startsWith('ok')) 
-          && emailState === EMAIL.CONFIRMING && emailDraft) {
-        await doSendEmail();
-        return;
-      }
-
-      if ((lower.startsWith('no') || lower.includes("don't"))
-          && (emailState === EMAIL.CONFIRMING || emailState === EMAIL.ASKING_WHO)) {
-        resetEmail();
-        await speak("No problem! Anything else?");
-        return;
-      }
-
-      // Email workflow states
-      if (emailState === EMAIL.ASKING_WHO) {
-        await handleRecipient(text.trim());
-        return;
-      }
-
-      if (emailState === EMAIL.ASKING_WHAT) {
-        await generateDraft(text.trim());
-        return;
-      }
-
-      // Check email intent
-      if (isEmailIntent(text)) {
-        const name = extractName(text);
-        if (name) {
-          addLine('assistant', `Looking up ${name}...`);
-          await handleRecipient(name);
-        } else {
-          setEmailState(EMAIL.ASKING_WHO);
-          await speak("Who would you like to email?");
-        }
-        return;
-      }
-
-      // Normal chat
-      await handleChat(text);
-      
-    } catch (err) {
-      console.error('[Lisa] Error:', err);
-      if (mountedRef.current) {
-        addLine('assistant', 'Sorry, something went wrong. Could you repeat?');
-      }
-    } finally {
-      processingRef.current = false;
-      if (mountedRef.current) {
-        setIsProcessing(false);
-        // Always restart listening after response
-        if (isInCall) {
-          setTimeout(() => {
-            if (mountedRef.current && isInCall && !processingRef.current) {
-              startListening();
-            }
-          }, 300);
-        }
-      }
-    }
-  }, [emailState, emailDraft, isInCall, stopListening, startListening]);
-
   // ==================== Email Handlers ====================
+
+  // Ref to track pending contact search (avoids stale closure issues)
+  const pendingContactSearchRef = useRef(null);
+
+  // Effect: Handle search results when they arrive
+  useEffect(() => {
+    if (!pendingContactSearchRef.current) return;
+    
+    const searchTerm = pendingContactSearchRef.current;
+    
+    // Check if we have results for this search
+    if (searchContactsResult && Array.isArray(searchContactsResult)) {
+      pendingContactSearchRef.current = null;
+      
+      const contacts = searchContactsResult;
+      const match = contacts.find(c => 
+        c.name.toLowerCase() === searchTerm.toLowerCase() ||
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      // Use setTimeout to avoid setting state during render
+      setTimeout(async () => {
+        try {
+          if (match && mountedRef.current) {
+            setEmailContact(match);
+            setEmailState(EMAIL.ASKING_WHAT);
+            addLine('assistant', `Found ${match.name}. What should the email say?`);
+            await speak(`I found ${match.name}. What should the email say?`);
+          } else if (mountedRef.current) {
+            addLine('assistant', `Contact "${searchTerm}" not found.`);
+            await speak(`I couldn't find ${searchTerm} in your contacts.`);
+            setEmailState(EMAIL.IDLE);
+          }
+          // Reset search term after processing
+          setEmailSearchTerm('');
+        } catch (err) {
+          console.error('[Lisa] Contact lookup error:', err);
+          if (mountedRef.current) {
+            setEmailSearchTerm('');
+            setEmailState(EMAIL.IDLE);
+          }
+        }
+      }, 0);
+    }
+  }, [searchContactsResult]);
 
   async function handleRecipient(name) {
     try {
-      const contactsResult = await searchContacts(name).catch(() => []);
-      const contacts = Array.isArray(contactsResult) ? contactsResult : [];
-      
-      const match = contacts.find(c => 
-        c.name.toLowerCase() === name.toLowerCase() ||
-        c.name.toLowerCase().includes(name.toLowerCase())
-      );
-      
-      if (match) {
-        setEmailContact(match);
-        setEmailState(EMAIL.ASKING_WHAT);
-        addLine('assistant', `Found ${match.name}.`);
-        await speak(`I found ${match.name}. What should the email say?`);
-      } else {
-        resetEmail();
-        await speak(`I couldn't find ${name} in your contacts. Add them on the Contacts page first.`);
-      }
+      // Set pending search and trigger query
+      pendingContactSearchRef.current = name;
+      setEmailSearchTerm(name);
+      addLine('assistant', `Looking up ${name}...`);
     } catch (err) {
-      console.error('[Lisa] Contact search error:', err);
-      resetEmail();
-      await speak("Trouble searching contacts. Try again.");
+      console.error('[Lisa] Contact lookup error:', err);
+      await speak("Sorry, I had trouble looking up contacts.");
     }
   }
 
-  async function searchContacts(query) {
-    // This will use Convex query
-    const response = await fetch('/api/contacts/search?q=' + encodeURIComponent(query));
-    return response.json();
-  }
-
-  async function generateDraft(content) {
-    setEmailState(EMAIL.SENDING); // Show processing state
-    
+  async function generateDraft(topic) {
     try {
-      let convId = conversationIdRef.current;
-      if (!convId) {
-        convId = await createConversation({ title: 'Voice Call' });
-        conversationIdRef.current = convId;
-      }
-
+      setEmailState(EMAIL.IDLE);
+      addLine('assistant', `Drafting email about: ${topic}...`);
+      
       const result = await generateReply({
-        conversationId: convId,
-        message: `Generate a professional email: "${content}". To: ${emailContact.name}. Return as:\nSubject: ...\n\n[body]`,
+        conversationId: 'draft',
+        message: `Write a short professional email about: ${topic}`,
       });
       
       if (result?.content) {
-        let subject = '', body = result.content;
-        const subjMatch = result.content.match(/Subject:\s*(.+?)(?:\n\n|\n)/i);
-        if (subjMatch) {
-          subject = subjMatch[1].trim();
-          body = result.content.replace(/Subject:\s*.+?(?:\n\n|\n)/i, '').trim();
-        } else {
-          subject = `Message from ${user?.firstName || 'Me'}`;
-        }
-        
-        const draft = { subject, body, to: emailContact.email };
+        const draft = result.content.replace(/```[\s\S]*?```/g, '').trim();
         setEmailDraft(draft);
         setEmailState(EMAIL.CONFIRMING);
         
-        addLine('assistant', `Email ready for ${emailContact.name}.\nSubject: ${subject}\n${body.substring(0, 150)}...`);
-        await speak(`Ready to send to ${emailContact.name}. Subject: "${subject}". Should I send?`);
+        addLine('assistant', `Here's your draft:\n\n${draft}\n\nShould I send it?`);
+        await speak(`Here's your draft: ${draft}. Should I send it?`);
       }
     } catch (err) {
       console.error('[Lisa] Draft error:', err);
-      resetEmail();
-      await speak("Trouble generating email. Try again.");
+      await speak("Sorry, I had trouble drafting that email.");
     }
   }
 
   async function doSendEmail() {
-    if (!emailDraft) return;
+    if (!emailContact || !emailDraft) return;
+    
+    setEmailState(EMAIL.SENDING);
+    addLine('assistant', 'Sending email...');
     
     try {
       await sendEmailMutation({
-        to: emailDraft.to,
-        subject: emailDraft.subject,
-        body: emailDraft.body,
+        to: emailContact.email,
+        subject: `Message from Lisa AI`,
+        body: emailDraft,
       });
       
       addLine('assistant', `✅ Email sent to ${emailContact.name}!`);
-      await speak(`Done! Email sent to ${emailContact.name}.`);
+      await speak(`Email sent to ${emailContact.name}!`);
       resetEmail();
     } catch (err) {
       console.error('[Lisa] Send error:', err);
-      resetEmail();
-      await speak("Couldn't send email. Check settings.");
+      addLine('assistant', 'Failed to send email.');
+      await speak("Sorry, I couldn't send the email. Please try again.");
+      setEmailState(EMAIL.CONFIRMING);
     }
   }
 
@@ -392,8 +377,6 @@ export default function CallPage() {
     setEmailContact(null);
     setEmailDraft(null);
   }
-
-  // ==================== Chat Handler ====================
 
   async function handleChat(text) {
     let convId = conversationIdRef.current;
@@ -448,6 +431,7 @@ export default function CallPage() {
       utterance.pitch = 1.1;
       
       utterance.onend = () => {
+        console.log('[Lisa] Speech ended');
         if (mountedRef.current) {
           setIsSpeaking(false);
           setCurrentSpokenText('');
@@ -456,7 +440,8 @@ export default function CallPage() {
         resolve();
       };
       
-      utterance.onerror = () => {
+      utterance.onerror = (event) => {
+        console.error('[Lisa] Speech error:', event?.error);
         if (mountedRef.current) {
           setIsSpeaking(false);
           setCurrentSpokenText('');
@@ -485,18 +470,11 @@ export default function CallPage() {
     setTranscriptLines([]);
     setError(null);
     conversationIdRef.current = null;
-    finalTranscriptRef.current = '';
     resetEmail();
-    
-    setTimeout(() => {
-      if (mountedRef.current) startListening();
-    }, 500);
-  }, [startListening]);
+  }, []);
 
   const endCall = useCallback(() => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    if (recognitionRef.current) try { recognitionRef.current.abort(); } catch (e) {}
+    stopListening();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     
     setIsInCall(false);
@@ -505,10 +483,22 @@ export default function CallPage() {
     setIsProcessing(false);
     setInterimText('');
     setCurrentSpokenText('');
-    finalTranscriptRef.current = '';
-    processingRef.current = false;
     resetEmail();
-  }, []);
+  }, [stopListening]);
+
+  // Handle mic button press
+  const handleMicPress = useCallback(() => {
+    if (!isInCall) {
+      startCall();
+      return;
+    }
+    
+    if (isListening) {
+      stopListening();
+    } else if (!isProcessing && !isSpeaking) {
+      startListening();
+    }
+  }, [isInCall, isListening, isProcessing, isSpeaking, startCall, startListening, stopListening]);
 
   // ==================== Lifecycle ====================
 
@@ -537,7 +527,7 @@ export default function CallPage() {
     if (emailState === EMAIL.ASKING_WHAT) return { icon: Mail, label: 'What to say?', color: 'blue' };
     if (emailState === EMAIL.CONFIRMING) return { label: 'Confirm?', color: 'blue' };
     if (emailState === EMAIL.SENDING) return { icon: Loader2, label: 'Sending...', color: 'blue', spin: true };
-    return { label: isInCall ? 'Ready' : 'Tap to start', color: 'gray' };
+    return { label: isInCall ? 'Tap mic to speak' : 'Tap to start', color: 'gray' };
   };
 
   const status = getStatusConfig();
@@ -613,7 +603,7 @@ export default function CallPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-green-400 font-medium">Live</span>
+              <span className="text-xs text-green-400 font-medium">Ready</span>
             </motion.div>
           )}
         </div>
@@ -623,7 +613,7 @@ export default function CallPage() {
       <main className="flex-1 flex flex-col relative z-10 px-4 sm:px-6 py-3 sm:py-4 overflow-hidden">
         
         {/* Transcript Area */}
-        <div className="flex-1 max-w-2xl mx-auto w-full overflow-y-auto py-4 space-y-3">
+        <div className="flex-1 max-w-2xl mx-auto w-full overflow-y-auto py-4 space-y-3 chat-scrollbar">
           <AnimatePresence initial={false}>
             {transcriptLines.map((line, idx) => (
               <motion.div key={`${idx}-${line.time}`}
@@ -648,89 +638,104 @@ export default function CallPage() {
           
           {/* Interim text (user speaking) */}
           {interimText && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-end">
-              <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-cyan-500/10 border border-cyan-500/30 border-dashed">
-                <p className="text-sm text-cyan-300/80 italic">{interimText}<span className="animate-pulse">▌</span></p>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }}
+              className="flex justify-end"
+            >
+              <div className="max-w-[90%] sm:max-w-[85%] px-4 py-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300/80 rounded-br-md text-sm">
+                {interimText}
+                <span className="inline-block w-1 h-4 bg-cyan-400 ml-1 animate-pulse" />
               </div>
             </motion.div>
           )}
-          
-          {/* Spoken text (Lisa speaking) */}
+
+          {/* Current spoken text (Lisa speaking) */}
           {currentSpokenText && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-              <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md bg-purple-500/10 border border-purple-500/30">
-                <div className="flex items-center gap-2 mb-1">
-                  <Volume2 className="w-3 h-3 text-purple-400 animate-pulse" />
-                  <span className="text-xs text-purple-400">Lisa speaking...</span>
-                </div>
-                <p className="text-sm text-purple-200">{currentSpokenText}</p>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }}
+              className="flex justify-start"
+            >
+              <div className="max-w-[90%] sm:max-w-[85%] px-4 py-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300/80 rounded-bl-md text-sm">
+                {currentSpokenText}
+                <span className="inline-block w-1 h-4 bg-purple-400 ml-1 animate-pulse" />
               </div>
             </motion.div>
-          )}
-          
-          {/* Empty state */}
-          {!transcriptLines.length && !interimText && !currentSpokenText && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity }}
-                  className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/20">
-                  <Sparkles className="w-8 h-8 text-purple-400/50" />
-                </motion.div>
-                <p className="text-gray-500 text-sm">
-                  {isInCall ? 'Start speaking...' : 'Start a call to begin'}
-                </p>
-                
-                {isInCall && (
-                  <div className="pt-2 space-y-1.5 text-xs text-gray-600">
-                    <p>Try saying:</p>
-                    <div className="flex flex-wrap justify-center gap-1.5 mt-2">
-                      <span className="px-2 py-1 rounded bg-white/5">"Hello!"</span>
-                      <span className="px-2 py-1 rounded bg-white/5">"Send email to Ali"</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           )}
         </div>
 
-        {/* Call Button - Clean, centered, no overlapping elements */}
-        <div className="flex-shrink-0 pb-4 sm:pb-6 pt-4 flex justify-center">
-          <AnimatePresence mode="wait">
-            {!isInCall ? (
-              <motion.button key="start" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={startCall}
-                className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 active:scale-95 transition-all">
-                <Phone className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:scale-110 transition-transform" />
-              </motion.button>
-            ) : (
-              <motion.button key="end" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
+        {/* Error Display */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-2xl mx-auto w-full mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-red-400 text-sm"
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Controls Area */}
+        <div className="flex-shrink-0 pb-6 sm:pb-8">
+          <div className="max-w-2xl mx-auto flex items-center justify-center gap-4">
+            
+            {/* End Call Button (only show when in call) */}
+            {isInCall && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={endCall}
-                className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-105 active:scale-95 transition-all">
-                <PhoneOff className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:scale-110 transition-transform" />
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg shadow-red-500/25 transition-colors"
+                title="End Call"
+              >
+                <PhoneOff className="w-6 h-6 text-white" />
               </motion.button>
             )}
-          </AnimatePresence>
+
+            {/* Main Microphone Button - TAP TO TALK */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleMicPress}
+              disabled={isProcessing || isSpeaking}
+              className={cn(
+                "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-lg transition-all duration-200",
+                isListening 
+                  ? "bg-green-500 shadow-green-500/40 animate-pulse scale-110" 
+                  : isInCall 
+                    ? "bg-gradient-to-br from-purple-500 to-cyan-500 shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105"
+                    : "bg-gradient-to-br from-purple-500 to-pink-500 shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105",
+                (isProcessing || isSpeaking) && "opacity-50 cursor-not-allowed"
+              )}
+              title={isListening ? "Tap to stop" : isInCall ? "Tap to speak" : "Start Conversation"}
+            >
+              {isListening ? (
+                <Mic className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              ) : (
+                <MicOff className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              )}
+            </motion.button>
+
+            {/* Spacer for balance */}
+            {!isInCall && <div className="w-14 h-14 sm:w-16 sm:h-16" />}
+          </div>
+          
+          {/* Instruction Text */}
+          <p className="text-center mt-4 text-gray-500 text-xs sm:text-sm">
+            {isInCall 
+              ? isListening 
+                ? "🎤 Listening... Tap mic to stop" 
+                : "Tap the microphone to speak"
+              : "Tap the microphone to start"
+            }
+          </p>
         </div>
       </main>
-
-      {/* Error Toast */}
-      <AnimatePresence>
-        {error && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 left-3 right-3 sm:left-4 sm:right-4 sm:bottom-6 max-w-md mx-auto z-50">
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-red-300 text-sm">{error}</p>
-                <button onClick={() => setError(null)} className="text-red-400/60 text-xs mt-1 hover:text-red-400">Dismiss</button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

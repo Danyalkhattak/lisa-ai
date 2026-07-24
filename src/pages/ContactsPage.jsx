@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -12,13 +12,16 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/clerk-react";
 
 /**
  * Contacts Page - Simple CRUD for email contacts.
  */
 
 export default function ContactsPage() {
+  const { user, isLoaded: userLoaded } = useUser();
+  const userId = user?.id;
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
@@ -26,13 +29,16 @@ export default function ContactsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Queries
-  const contactsResult = searchQuery
-    ? useQuery(api.contacts.search, { query: searchQuery })
-    : useQuery(api.contacts.list);
-  
-  // Safe access - handle undefined state
-  const contacts = contactsResult || { isLoading: false, data: undefined };
+  // Queries - only run when userId is available
+  const contactsResult = userId
+    ? (searchQuery 
+        ? useQuery(api.contacts.search, { query: searchQuery, userId })
+        : useQuery(api.contacts.list, { userId }))
+    : undefined;
+    
+  // Safe access with defaults
+  const isLoading = contactsResult === undefined ? true : (contactsResult?.isLoading ?? false);
+  const contactsData = contactsResult?.data;
 
   // Mutations
   const createContact = useMutation(api.contacts.create);
@@ -51,11 +57,16 @@ export default function ContactsPage() {
     setError("");
 
     try {
+      if (!userId) {
+        setError('You must be logged in to add contacts');
+        return;
+      }
+      
       if (editingContact) {
         await updateContact({ id: editingContact, ...formData });
         setSuccess("Contact updated!");
       } else {
-        await createContact(formData);
+        await createContact({ ...formData, userId });
         setSuccess("Contact added!");
       }
       
@@ -114,7 +125,8 @@ export default function ContactsPage() {
             placeholder="Search contacts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+            disabled={!userId}
+            className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
           />
         </div>
 
@@ -205,12 +217,12 @@ export default function ContactsPage() {
 
         {/* Contacts List */}
         <div className="space-y-2">
-          {contacts.isLoading ? (
+          {!userLoaded || isLoading ? (
             <div className="text-center py-12 text-gray-500">
               <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
               Loading contacts...
             </div>
-          ) : !contacts.data || contacts.data.length === 0 ? (
+          ) : !contactsData || contactsData.length === 0 ? (
             <div className="text-center py-12">
               <Mail className="w-12 h-12 mx-auto mb-4 text-gray-700" />
               <p className="text-gray-500 mb-2">No contacts yet</p>
@@ -219,7 +231,7 @@ export default function ContactsPage() {
               </p>
             </div>
           ) : (
-            contacts.data?.map((contact) => (
+            contactsData.map((contact) => (
               <motion.div
                 key={contact._id}
                 initial={{ opacity: 0, x: -20 }}

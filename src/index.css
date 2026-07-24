@@ -2,201 +2,424 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/* ============================================
+   Lisa AI - Dark Theme Base Styles
+   Background: #09090B (zinc-950)
+   Primary: #7C3AED (purple-600)
+   ============================================ */
 
-  html {
-    scroll-behavior: smooth;
-  }
+:root {
+  --bg-primary: #09090B;
+  --bg-surface: #111113;
+  --bg-elevated: #18181B;
+  --color-primary: #7C3AED;
+  --color-primary-light: #A78BFA;
+  --color-accent: #06B6D4;
+  --color-text: #FFFFFF;
+  --color-text-muted: #A1A1AA;
+  --color-border: rgba(255,255,255,0.08);
+}
 
-  body {
-    @apply bg-background text-text;
-    /* Subtle ambient mesh behind everything — fixed so it doesn't scroll */
-    background-image: var(--bg-mesh, none);
-    background-attachment: fixed;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-  /* Visible focus states for keyboard navigation (accessibility requirement) */
-  :focus-visible {
-    outline: 2px solid #7c3aed;
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-heading;
-  }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--color-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  ::selection {
-    background-color: rgba(124, 58, 237, 0.35);
-    color: #ffffff;
-  }
+/* Prevent horizontal overflow on mobile */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 
-  /* Respect user's reduced-motion preference */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
+/* Focus states */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background-color: rgba(124, 58, 237, 0.35);
+  color: #ffffff;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-@layer components {
-  /* Glassmorphism surface used across cards, panels, modals */
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+
+/* Global scrollbar - subtle (not themed) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox - global subtle */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+/* ============================================
+   Chat Area Scrollbar - Dark Purple Theme
+   Only applies to .chat-scrollbar (transcript area)
+   ============================================ */
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: #09090B; /* Match main background */
+}
+
+.chat-scrollbar::-webkit-scrollbar-corner {
+  background: #09090B;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(124, 58, 237, 0.5); /* Purple tint matching theme */
+  border-radius: 9999px;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(124, 58, 237, 0.7);
+  border-color: rgba(124, 58, 237, 0.5);
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: rgba(124, 58, 237, 0.9);
+}
+
+/* Firefox - chat area only */
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.5) #09090B;
+}
+
+/* ============================================
+   Component Classes
+   ============================================ */
+
+/* Glass panel effect */
+.glass-panel {
+  background: rgba(17, 17, 19, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.glass-panel-hover {
+  transition: all 300ms ease;
+}
+
+.glass-panel-hover:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.35);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, #7C3AED 0%, #6366F1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Primary button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #7C3AED 0%, #6366F1 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 0 80px rgba(124, 58, 237, 0.20);
+  transition: all 300ms ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Secondary button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+  backdrop-filter: blur(16px);
+  transition: all 300ms ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+/* Pill badge */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.25rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-text-muted);
+  backdrop-filter: blur(16px);
+}
+
+/* Input styling */
+.input-dark {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  color: white;
+  font-size: 0.875rem;
+  transition: all 200ms ease;
+}
+
+.input-dark::placeholder {
+  color: #71717A;
+}
+
+.input-dark:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* Card component */
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 1rem;
+  transition: all 200ms ease;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================
+   Responsive Utilities - Full Mobile Support
+   ============================================ */
+
+/* Mobile-first responsive container */
+.container-responsive {
+  width: 100%;
+  max-width: 56rem; /* 896px */
+  margin: 0 auto;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+@media (min-width: 380px) {
+  .container-responsive {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Mobile-specific fixes */
+@media (max-width: 480px) {
+  /* Smaller text on tiny screens */
+  body { font-size: 14px; }
+  
+  h1 { font-size: 1.25rem !important; }
+  h2 { font-size: 1.125rem !important; }
+  
+  /* Touch-friendly buttons */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent zoom on input focus (iOS) */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  body { font-size: 13px; }
+  
+  /* Extra small screen adjustments */
   .glass-panel {
-    @apply bg-surface/60 backdrop-blur-glass border border-border rounded-2xl shadow-glass;
-  }
-
-  .glass-panel-hover {
-    @apply transition-all duration-300 hover:border-primary/40 hover:shadow-glow;
-  }
-
-  /* Gradient text used sparingly for key headings */
-  .text-gradient {
-    @apply bg-gradient-primary bg-clip-text text-transparent;
-  }
-
-  .text-gradient-tri {
-    @apply bg-gradient-tri bg-clip-text text-transparent;
-    background-size: 200% 200%;
-    @apply animate-gradient-shift;
-  }
-
-  /* Animated gradient border wrapper — useful for CTA cards */
-  .gradient-border {
-    position: relative;
-    background: linear-gradient(#0a0a0c, #0a0a0c) padding-box,
-      linear-gradient(135deg, #7c3aed, #6366f1, #06b6d4) border-box;
-    border: 1px solid transparent;
-    border-radius: 1.5rem;
-  }
-
-  /* Scrollbar styling to match the dark, premium theme */
-  .themed-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .themed-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .themed-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-  }
-
-  .themed-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Primary CTA button — gradient pill with glow on hover */
-  .btn-primary {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-full
-      bg-gradient-primary px-6 py-3 font-body font-semibold text-white
-      shadow-glow-soft transition-all duration-300
-      hover:shadow-glow hover:-translate-y-0.5
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60;
-  }
-
-  /* Secondary CTA — ghost glass pill */
-  .btn-secondary {
-    @apply relative inline-flex items-center justify-center gap-2 rounded-full
-      border border-border bg-white/[0.03] px-6 py-3 font-body font-semibold text-text
-      backdrop-blur-glass transition-all duration-300
-      hover:border-primary/40 hover:bg-white/[0.06] hover:-translate-y-0.5
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60;
-  }
-
-  /* Pill badge — small label chip used above section headings */
-  .pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-border
-      bg-white/[0.04] px-3 py-1 font-mono text-xs uppercase tracking-[0.18em]
-      text-text-muted backdrop-blur-glass;
-  }
-
-  /* Section vertical rhythm — consistent paddings across the landing page */
-  .section-pad {
-    @apply px-6 py-24 md:py-32 lg:px-8;
-  }
-
-  .container-max {
-    @apply mx-auto w-full max-w-7xl;
+    padding: 0.75rem !important;
+    border-radius: 0.75rem !important;
   }
 }
 
-@layer utilities {
-  /* Subtle dotted grid overlay for hero / showcase backgrounds */
-  .bg-dotted-grid {
-    background-image: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.07) 1px,
-      transparent 1px
-    );
-    background-size: 32px 32px;
-  }
+/* Safe area for notch phones */
+.safe-area-inset {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
 
-  .bg-dotted-grid-fine {
-    background-image: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.05) 1px,
-      transparent 1px
-    );
-    background-size: 18px 18px;
-  }
+/* Horizontal scroll prevention for all elements */
+* {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
 
-  /* Animated conic glow used behind the hero orb */
-  .conic-glow {
-    background: conic-gradient(
-      from 180deg at 50% 50%,
-      rgba(124, 58, 237, 0) 0deg,
-      rgba(124, 58, 237, 0.6) 90deg,
-      rgba(6, 182, 212, 0.5) 180deg,
-      rgba(99, 102, 241, 0.6) 270deg,
-      rgba(124, 58, 237, 0) 360deg
-    );
-    filter: blur(40px);
-  }
+/* Ensure flex containers don't overflow */
+.flex {
+  flex-wrap: wrap;
+}
 
-  /* Mask helpers for fading marquee edges */
-  .mask-fade-x {
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 12%,
-      black 88%,
-      transparent
-    );
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 12%,
-      black 88%,
-      transparent
-    );
+/* Responsive table/card fallback */
+@media (max-width: 640px) {
+  .responsive-stack {
+    flex-direction: column !important;
   }
+  
+  .responsive-stack > * {
+    width: 100% !important;
+  }
+}
 
-  .mask-fade-b {
-    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent);
-    mask-image: linear-gradient(to bottom, black 60%, transparent);
-  }
+/* Touch-friendly sizing */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
 
-  /* Perspective helper for 3D tilt cards */
-  .perspective-1000 {
-    perspective: 1000px;
-  }
+/* Hide scrollbar but allow scrolling */
+.scroll-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
-  .preserve-3d {
-    transform-style: preserve-3d;
+.scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   Animation Utilities
+   ============================================ */
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 0.9; 
   }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 1; 
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Gradient backgrounds */
+.bg-mesh {
+  background-image: 
+    radial-gradient(at 20% 30%, rgba(124,58,237,0.25) 0px, transparent 50%), 
+    radial-gradient(at 80% 20%, rgba(6,182,212,0.20) 0px, transparent 50%), 
+    radial-gradient(at 50% 80%, rgba(99,102,241,0.20) 0px, transparent 50%);
+}
+
+.bg-dots {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
 }

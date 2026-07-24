@@ -9,14 +9,19 @@ import { v } from "convex/values";
 
 /** List all contacts for current user */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = ctx.auth.getUserIdentity();
-    if (!userId) return [];
+  args: { userId: v.optional(v.string()) }, // Accept userId from frontend
+  handler: async (ctx, args) => {
+    // Use provided userId or fall back to auth
+    let userId = args.userId;
+    if (!userId) {
+      const identity = ctx.auth.getUserIdentity();
+      if (!identity) return [];
+      userId = identity.subject;
+    }
 
     return await ctx.db
       .query("contacts")
-      .withIndex("by_user", (q) => q.eq("userId", userId.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .collect();
   },
@@ -37,16 +42,46 @@ export const get = query({
   },
 });
 
-/** Search contacts by name */
-export const search = query({
+/** Search contacts by name - simplified for voice commands */
+export const searchContacts = query({
   args: { query: v.string() },
   handler: async (ctx, args) => {
-    const userId = ctx.auth.getUserIdentity();
-    if (!userId) return [];
+    const identity = ctx.auth.getUserIdentity();
+    if (!identity) return [];
 
     const allContacts = await ctx.db
       .query("contacts")
-      .withIndex("by_user", (q) => q.eq("userId", userId.subject))
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Simple case-insensitive search
+    const searchLower = args.query.toLowerCase();
+    return allContacts.filter(
+      (c) =>
+        c.name.toLowerCase().includes(searchLower) ||
+        c.email.toLowerCase().includes(searchLower)
+    );
+  },
+});
+
+/** Search contacts by name */
+export const search = query({
+  args: { 
+    query: v.string(),
+    userId: v.optional(v.string()), // Accept userId from frontend
+  },
+  handler: async (ctx, args) => {
+    // Use provided userId or fall back to auth
+    let userId = args.userId;
+    if (!userId) {
+      const identity = ctx.auth.getUserIdentity();
+      if (!identity) return [];
+      userId = identity.subject;
+    }
+
+    const allContacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     // Simple case-insensitive search
@@ -66,11 +101,9 @@ export const create = mutation({
   args: {
     name: v.string(),
     email: v.string(),
+    userId: v.string(), // Accept userId from frontend (Clerk ID)
   },
   handler: async (ctx, args) => {
-    const userId = ctx.auth.getUserIdentity();
-    if (!userId) throw new Error("Not authenticated");
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(args.email)) {
@@ -81,7 +114,7 @@ export const create = mutation({
     const existing = await ctx.db
       .query("contacts")
       .withIndex("by_user_email", (q) =>
-        q.eq("userId", userId.subject).eq("email", args.email.trim().toLowerCase())
+        q.eq("userId", args.userId).eq("email", args.email.trim().toLowerCase())
       )
       .first();
 
@@ -90,7 +123,7 @@ export const create = mutation({
     }
 
     const id = await ctx.db.insert("contacts", {
-      userId: userId.subject,
+      userId: args.userId,
       name: args.name.trim(),
       email: args.email.trim().toLowerCase(),
       createdAt: Date.now(),

@@ -8,12 +8,12 @@ A voice-controlled AI assistant built for my university internship project.
 
 ## Features
 
-- **Always-Listening Mode** — No tap needed, just start talking
-- **Voice Interruption** — Stop Lisa mid-sentence by talking over her
-- **Female Voice** — Natural TTS with female voice selection
-- **Email Workflow** — "Send email to Ali" → Lisa guides you step-by-step
+- **Tap-to-Talk Mode** — Press the mic button to speak, release when done
+- **Voice Responses** — Lisa speaks back with natural female TTS
+- **Email Workflow** — "Send email to Ali" → Lisa guides you step-by-step (**REAL emails via Resend**)
 - **Contacts CRUD** — Add, edit, delete email contacts
 - **Authentication** — Secure login/signup with Clerk
+- **Responsive Design** — Works on mobile and desktop
 
 ---
 
@@ -40,71 +40,44 @@ npm run convex:dev
 ## Environment Variables
 
 ```env
+# Required - Authentication & AI
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 GEMINI_API_KEY=AIza...
+
+# Required - For REAL email sending (FREE tier: 3000 emails/month)
+RESEND_API_KEY=re_your_key_here
+EMAIL_FROM=Lisa AI <onboarding@resend.dev>
 ```
 
 Get keys from:
 - [Clerk Dashboard](https://dashboard.clerk.com) → API Keys
 - [Google AI Studio](https://aistudio.google.com) → Get API Key
+- [Resend Dashboard](https://resend.com) → API Keys (FREE)
 
----
+### Setting Up Email (Required for Email Feature)
 
-## Project Structure
-
-```
-lisa-ai/
-├── src/
-│   ├── pages/
-│   │   ├── CallPage.jsx       # Main voice assistant ⭐
-│   │   ├── ContactsPage.jsx   # Contact management
-│   │   ├── SettingsPage.jsx   # Settings & logout
-│   │   ├── LandingPage.jsx    # Public landing page
-│   │   ├── SignInPage.jsx     # Login
-│   │   └── SignUpPage.jsx     # Register
-│   ├── providers/             # Auth + DB providers
-│   ├── constants/             # Routes, theme tokens
-│   ├── App.jsx                # Router setup
-│   └── main.jsx               # Entry point
-├── convex/
-│   ├── ai.ts                  # Gemini AI integration
-│   ├── schema.ts              # Database schema
-│   ├── contacts.ts            # Contact CRUD
-│   ├── conversations.ts       # Chat threads
-│   ├── messages.ts            # Message storage
-│   └── email.ts               # EmailJS sender
-└── public/
-    └── favicon.svg
-```
-
----
-
-## Database Schema (Convex)
-
-| Table | Fields | Purpose |
-|-------|--------|---------|
-| `users` | clerkId, email, name | Synced from Clerk |
-| `conversations` | userId, title | Chat sessions |
-| `messages` | conversationId, role, content | Chat history |
-| `contacts` | userId, name, email | Email contacts |
-| `userSettings` | voiceEnabled | User preferences |
+1. **Sign up for Resend** (free): https://resend.com/signup
+2. **Get API Key**: Dashboard → API Keys → Create API Key
+3. **Add to Convex env**: 
+   ```bash
+   npx convex env set RESEND_API_KEY re_your_key_here
+   npx convex env set EMAIL_FROM "Lisa AI <onboarding@resend.dev>"
+   ```
+4. **Test it**: Use Lisa's voice command "Send email to [contact]"
 
 ---
 
 ## How It Works
 
-### Always-Listening Flow
+### Tap-to-Talk Flow
 
 ```
-Start Call → Recognition ON (continuous)
-    ↓
-User speaks → Text captured in real-time
-    ↓
-1.5s silence → Process text → Call Gemini
-    ↓
-Lisa responds (TTS) → Auto-restart listening
-    ↓
-Loop continues until End Call
+1. Tap microphone button → Start conversation
+2. Tap mic again → Start listening
+3. Speak your message
+4. Lisa processes & responds (voice + text)
+5. Tap mic again for next message
+6. Press End Call when done
 ```
 
 ### Email Workflow Example
@@ -122,6 +95,32 @@ Lisa: "Done! Email sent." ✅
 
 ---
 
+## Project Structure
+
+```
+lisa-ai/
+├── src/
+│   ├── pages/
+│   │   ├── CallPage.jsx       # Main voice assistant ⭐
+│   │   ├── ContactsPage.jsx   # Contact management
+│   │   ├── SettingsPage.jsx   # Settings & logout
+│   │   ├── LandingPage.jsx    # Public landing page
+│   │   ├── SignInPage.jsx     # Login
+│   │   └── SignUpPage.jsx     # Register
+│   ├── providers/             # Auth + DB providers
+│   ├── App.jsx                # Router setup
+│   └── main.jsx               # Entry point
+├── convex/
+│   ├── ai.ts                  # Gemini AI integration
+│   ├── schema.ts              # Database schema
+│   ├── contacts.ts            # Contact CRUD
+│   └── email.ts               # Email sender
+└── public/
+    └── favicon.svg
+```
+
+---
+
 ## Tech Stack Details
 
 | Technology | Version | Use Case |
@@ -133,6 +132,7 @@ Lisa: "Done! Email sent." ✅
 | Clerk | 5.7+ | Authentication |
 | Convex | 1.14+ | Backend/Database |
 | Gemini 2.0 Flash | - | AI Model |
+| Resend API | - | Real Email Sending |
 | Web Speech API | - | Speech Recognition & TTS |
 
 ---
@@ -144,7 +144,7 @@ Lisa: "Done! Email sent." ✅
 | `/` | Landing | Public landing page |
 | `/signin` | Sign In | Login page |
 | `/signup` | Sign Up | Registration |
-| `/call` | **Call Page** | Main voice assistant |
+| `/call` | **Call Page** | Main voice assistant (tap-to-talk) |
 | `/contacts` | Contacts | Manage contacts |
 | `/settings` | Settings | Preferences |
 
@@ -170,12 +170,13 @@ npm run preview
 ## What I Learned
 
 - Web Speech API (SpeechRecognition + SpeechSynthesis)
-- Real-time speech processing with silence detection
+- Push-to-talk voice interaction patterns
 - Convex serverless backend architecture
 - Google Gemini AI integration
 - React state management with refs for async operations
 - Authentication flow with Clerk
 - Guided conversational UI patterns
+- Responsive mobile-first design
 
 ---
 
