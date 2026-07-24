@@ -37,6 +37,8 @@ export default function SignUpPage() {
           className="w-full max-w-md" // 👈 smaller width
         >
           <SignUp 
+          afterSignInUrl="/call"
+          afterSignUpUrl="/call"
             appearance={{
               variables: {
                 colorPrimary: "#D946EF",

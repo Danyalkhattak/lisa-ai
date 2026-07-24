@@ -37,6 +37,8 @@ export default function SignInPage() {
           className="w-full max-w-md" // 👈 changed from max-w-xl to max-w-md
         >
           <SignIn 
+          afterSignInUrl="/call"
+          afterSignUpUrl="/call"
             appearance={{
               variables: {
                 colorPrimary: "#7C3AED",
