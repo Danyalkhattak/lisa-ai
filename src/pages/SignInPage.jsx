@@ -19,7 +19,7 @@ export default function SignInPage() {
         />
       </div>
 
-      {/* Back Link - absolutely positioned */}
+      {/* Back Link */}
       <Link
         to="/"
         className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
@@ -34,7 +34,7 @@ export default function SignInPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-xl"
+          className="w-full max-w-md" // 👈 changed from max-w-xl to max-w-md
         >
           <SignIn 
             appearance={{
@@ -54,21 +54,20 @@ export default function SignInPage() {
               elements: {
                 rootBox: "w-full !max-w-full",
                 card: "!bg-transparent !shadow-none !border-0 !p-0 !w-full !max-w-full",
-                // 👇 Keep the header visible – we'll style it
-                headerTitle: "!text-2xl sm:!text-3xl !font-bold !text-white !font-['Space_Grotesk',sans-serif] !mb-2",
-                headerSubtitle: "!text-gray-500 !text-sm !leading-relaxed",
-                header: "!block !mb-8",
-                socialButtonsBlockButton: "!bg-white/[0.08] hover:!bg-white/15 !border-white/20 hover:!border-white/30 !text-white !font-medium !rounded-xl !transition-all !py-3 !w-full !max-w-full !box-border",
+                headerTitle: "!text-xl sm:!text-2xl !font-bold !text-white !font-['Space_Grotesk',sans-serif] !mb-1", // 👈 smaller text
+                headerSubtitle: "!text-gray-500 !text-xs !leading-relaxed", // 👈 smaller text
+                header: "!block !mb-6", // 👈 less margin
+                socialButtonsBlockButton: "!bg-white/[0.08] hover:!bg-white/15 !border-white/20 hover:!border-white/30 !text-white !font-medium !rounded-xl !transition-all !py-2.5 !w-full !max-w-full !box-border", // 👈 slightly less padding
                 socialButtonsBlockButtonText: "!text-white !font-medium !text-sm",
                 socialButtonsBlockButtonArrow: "!text-white",
-                formFieldLabel: "!text-gray-300 !text-sm !font-medium !mb-2 !block",
-                formFieldInput: "!bg-[#18181B] !border-white/15 !text-white !rounded-xl focus:!border-violet-500 focus:!ring-2 focus:!ring-violet-500/25 !px-4 !py-3 !text-sm !transition-all !w-full !max-w-full !box-border",
-                formButtonPrimary: "!bg-gradient-to-r !from-violet-500 !via-purple-500 !to-fuchsia-500 hover:!from-violet-600 hover:!to-fuchsia-600 !text-white !font-semibold !normal-case !rounded-xl !shadow-lg !shadow-violet-500/30 !transition-all !py-3.5 !w-full !max-w-full !box-border",
-                formButtonSecondary: "!bg-white/[0.06] hover:!bg-white/10 !border-white/15 !text-white !font-medium !normal-case !rounded-xl !transition-all !py-3 !w-full !max-w-full !box-border",
+                formFieldLabel: "!text-gray-300 !text-xs !font-medium !mb-1.5 !block", // 👈 smaller
+                formFieldInput: "!bg-[#18181B] !border-white/15 !text-white !rounded-xl focus:!border-violet-500 focus:!ring-2 focus:!ring-violet-500/25 !px-3.5 !py-2.5 !text-sm !transition-all !w-full !max-w-full !box-border", // 👈 smaller padding
+                formButtonPrimary: "!bg-gradient-to-r !from-violet-500 !via-purple-500 !to-fuchsia-500 hover:!from-violet-600 hover:!to-fuchsia-600 !text-white !font-semibold !normal-case !rounded-xl !shadow-lg !shadow-violet-500/30 !transition-all !py-3 !w-full !max-w-full !box-border", // 👈 smaller padding
+                formButtonSecondary: "!bg-white/[0.06] hover:!bg-white/10 !border-white/15 !text-white !font-medium !normal-case !rounded-xl !transition-all !py-2.5 !w-full !max-w-full !box-border",
                 formButtonReset: "!text-gray-400 hover:!text-white !text-sm !font-normal",
                 footerActionLink: "!text-violet-400 hover:!text-violet-300 !font-medium !text-sm",
                 footerActionText: "!text-gray-500 !text-sm",
-                dividerText: "!text-gray-500 !text-sm !bg-transparent",
+                dividerText: "!text-gray-500 !text-xs !bg-transparent", // 👈 smaller
                 identityPreview: "!text-white",
                 identityPreviewText: "!text-gray-300",
                 identityPreviewEditButton: "!text-violet-400 hover:!text-violet-300",
@@ -100,12 +99,12 @@ export default function SignInPage() {
                 popoverCard: "!bg-[#111113] !border-white/10 !rounded-2xl !shadow-2xl",
                 tooltipArrow: "!fill-[#111113]",
                 tooltipContent: "!bg-[#111113] !text-white !text-sm !border !border-white/10",
-                formField: "!mb-4",
-                form: "!space-y-4",
+                formField: "!mb-3", // 👈 reduced spacing
+                form: "!space-y-3", // 👈 reduced spacing
                 formResendCodeLink: "!text-violet-400 hover:!text-violet-300 !text-sm",
-                footer: "!mt-6 !pt-4",
+                footer: "!mt-4 !pt-3", // 👈 reduced spacing
                 socialButtonsDividerLine: "!bg-white/10",
-                socialButtonsBlock: "!gap-3",
+                socialButtonsBlock: "!gap-2", // 👈 reduced gap
                 socialButtonsBlockButtonType: "!flex-1",
                 formFieldSuccessMessage: "!text-emerald-400 !text-sm",
                 formFieldErrorMessage: "!text-red-400 !text-sm",
@@ -113,24 +112,6 @@ export default function SignInPage() {
             }}
           />
         </motion.div>
-      </div>
-
-      {/* Footer - absolutely positioned at bottom */}
-      <div className="absolute bottom-6 left-0 right-0 text-center z-10">
-        <div className="flex items-center justify-center gap-6 text-xs text-gray-600">
-          <span className="flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-emerald-500/60" />
-            Secure auth
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-violet-500/60" />
-            Powered by Clerk
-          </span>
-        </div>
-        <p className="text-xs text-gray-700 mt-1">
-          Protected by enterprise-grade security
-        </p>
       </div>
     </div>
   );
