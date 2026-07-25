@@ -41,16 +41,10 @@ const CONVEX_SITE_URL =
 function detectAppleWebKit() {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
-  const isIOSDevice =
-    /iPad|iPhone|iPod/.test(ua) ||
-    // iPadOS 13+ reports as "MacIntel" with touch support, so UA
-    // sniffing alone misses iPads unless we also check for touch.
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // Matches Safari on macOS while excluding Chrome/Firefox/Edge —
-  // including their iOS variants (CriOS/FxiOS/EdgiOS), which are
-  // already covered by isIOSDevice above.
   const isDesktopSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
-  return isIOSDevice || isDesktopSafari;
+  return isIOS || isDesktopSafari;
 }
 
 const IS_APPLE_WEBKIT = detectAppleWebKit();
@@ -565,32 +559,27 @@ export default function CallPage() {
     return new Promise((resolve) => {
       let resolved = false;
 
-      // Clean up and resolve once
       const finish = (shouldAddLine = true) => {
         if (resolved) return;
         resolved = true;
 
-        // Clear any scheduled timeout
         if (options.timeoutId) {
           clearTimeout(options.timeoutId);
           options.timeoutId = null;
         }
 
-        // Stop word‑by‑word reveal
         stopWordReveal();
 
         if (mountedRef.current) {
           setIsSpeaking(false);
           setCurrentSpokenText('');
           if (shouldAddLine) {
-            // `clean` is defined below and captured in closure
             addLine('assistant', clean);
           }
         }
         resolve();
       };
 
-      // --- Main TTS logic (unchanged) ---
       if (!text?.trim() || !mountedRef.current) {
         finish(false);
         return;
@@ -611,22 +600,19 @@ export default function CallPage() {
       setIsSpeaking(true);
       setCurrentSpokenText('');
 
-      // --- Timeout (only for Apple WebKit) ---
+      // Timeout only for Apple WebKit (all iOS browsers + macOS Safari)
       if (IS_APPLE_WEBKIT) {
-        const timeoutMs = options.timeout ?? 30000; // 30 seconds
+        const timeoutMs = options.timeout ?? 15000; // 15 seconds
         options.timeoutId = setTimeout(() => {
           console.warn('[Lisa] TTS timed out on Apple WebKit – forcing completion');
-          // Cancel any ongoing speech
           if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
           }
           stopWordReveal();
-          // Force finish and add the assistant line
           finish(true);
         }, timeoutMs);
       }
 
-      // --- Try ElevenLabs streaming ---
       (async () => {
         try {
           const spoke = await speakWithElevenLabsStream(clean, {
@@ -644,17 +630,17 @@ export default function CallPage() {
           stopWordReveal();
         }
 
-        // --- Fallback to browser TTS ---
         if (!mountedRef.current) {
           finish(false);
           return;
         }
+
         try {
           await speakWithBrowserTTS(clean);
           finish(true);
         } catch (err) {
           console.error('[Lisa] Browser TTS failed:', err);
-          finish(true); // still add the line
+          finish(true);
         }
       })();
     });
