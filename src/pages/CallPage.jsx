@@ -15,8 +15,141 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * Convex HTTP actions (like the streaming TTS endpoint below) are
+ * served from the `*.convex.site` domain — separate from
+ * `*.convex.cloud`, which is the websocket/query-mutation-action API
+ * domain used by the regular Convex client. Falls back to deriving it
+ * from VITE_CONVEX_URL for setups where VITE_CONVEX_SITE_URL hasn't
+ * been added to .env.local yet.
+ */
+const CONVEX_SITE_URL =
+  import.meta.env.VITE_CONVEX_SITE_URL ||
+  import.meta.env.VITE_CONVEX_URL?.replace(/\.convex\.cloud\/?$/, ".convex.site");
+
+/**
+ * Plays a streamed `audio/mpeg` response body progressively via the
+ * MediaSource API, starting playback as soon as the first chunk is
+ * buffered rather than waiting for the whole clip to download. This
+ * is what gives the ElevenLabs path its low latency.
+ */
+function playMseAudioStream(bodyStream) {
+  return new Promise((resolve, reject) => {
+    const mediaSource = new MediaSource();
+    const audio = new Audio();
+    const objectUrl = URL.createObjectURL(mediaSource);
+    audio.src = objectUrl;
+
+    let settled = false;
+    const cleanup = () => {
+      try { URL.revokeObjectURL(objectUrl); } catch { /* noop */ }
+    };
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err instanceof Error ? err : new Error(String(err)));
+    };
+    const succeed = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    audio.onended = succeed;
+    audio.onerror = () => fail(new Error("MSE audio element error"));
+
+    mediaSource.addEventListener(
+      "sourceopen",
+      async () => {
+        let sourceBuffer;
+        try {
+          sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+        } catch (err) {
+          fail(err);
+          return;
+        }
+
+        const reader = bodyStream.getReader();
+        let started = false;
+
+        const waitForNotUpdating = () =>
+          sourceBuffer.updating
+            ? new Promise((r) => sourceBuffer.addEventListener("updateend", r, { once: true }))
+            : Promise.resolve();
+
+        const appendChunk = (chunk) =>
+          new Promise((res, rej) => {
+            const onUpdateEnd = () => {
+              sourceBuffer.removeEventListener("error", onError);
+              res();
+            };
+            const onError = (e) => {
+              sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+              rej(e);
+            };
+            sourceBuffer.addEventListener("updateend", onUpdateEnd, { once: true });
+            sourceBuffer.addEventListener("error", onError, { once: true });
+            try {
+              sourceBuffer.appendBuffer(chunk);
+            } catch (err) {
+              sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+              sourceBuffer.removeEventListener("error", onError);
+              rej(err);
+            }
+          });
+
+        const pump = async () => {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            await waitForNotUpdating();
+            if (mediaSource.readyState === "open") {
+              try { mediaSource.endOfStream(); } catch { /* noop */ }
+            }
+            return;
+          }
+
+          await waitForNotUpdating();
+          await appendChunk(value);
+
+          if (!started) {
+            // First chunk is buffered — start playback now instead of
+            // waiting for the rest of the stream to arrive.
+            started = true;
+            audio.play().catch(fail);
+          }
+
+          return pump();
+        };
+
+        pump().catch(fail);
+      },
+      { once: true },
+    );
+  });
+}
+
+/**
+ * Fallback for browsers without MediaSource 'audio/mpeg' support
+ * (e.g. Safari): waits for the whole stream, then plays it as a blob.
+ * Still faster than the old base64-over-Convex-action round trip and
+ * still uses the fast Flash v2.5 model — just not progressively
+ * played while downloading.
+ */
+async function playBlobAudioStream(bodyStream) {
+  const blob = await new Response(bodyStream).blob();
+  return new Promise((resolve, reject) => {
+    const audio = new Audio(URL.createObjectURL(blob));
+    audio.onended = resolve;
+    audio.onerror = () => reject(new Error("Audio playback failed"));
+    audio.play().catch(reject);
+  });
+}
 
 /**
  * CallPage — Premium Voice Assistant Interface
@@ -30,6 +163,7 @@ import { cn } from "@/lib/utils";
 
 export default function CallPage() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
 
   // State
@@ -52,7 +186,7 @@ export default function CallPage() {
   // Convex
   const generateReply = useAction(api.ai.chat);
   const createConversation = useMutation(api.conversations.create);
-  const elevenLabsSpeak = useAction(api.tts.speak);
+  const warmElevenLabs = useAction(api.ttsStream.warm);
 
   // ==================== Speech Recognition ====================
 
@@ -247,6 +381,44 @@ export default function CallPage() {
     });
   }, [addLine]);
 
+  // Streams ElevenLabs speech via the /tts-stream HTTP action so audio
+  // can start playing before the full clip has been generated/downloaded.
+  // Returns `true` if ElevenLabs successfully spoke the text, `false` if
+  // it's not configured (caller should fall back to browser TTS). Throws
+  // on genuine playback/network errors so the caller's catch block can
+  // fall back the same way the old implementation did.
+  const speakWithElevenLabsStream = useCallback(async (clean) => {
+    if (!CONVEX_SITE_URL) return false;
+
+    const token = await getToken({ template: 'convex' }).catch(() => null);
+    if (!token) return false;
+
+    const response = await fetch(`${CONVEX_SITE_URL}/tts-stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ text: clean }),
+    });
+
+    // 204/non-2xx means ElevenLabs isn't configured or the request
+    // failed server-side — signal the caller to fall back silently,
+    // same as the old action returning `null`.
+    if (!response.ok || !response.body) return false;
+    if (!mountedRef.current) return true;
+
+    console.log('[Lisa] Speaking via ElevenLabs (streamed)');
+
+    if (typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('audio/mpeg')) {
+      await playMseAudioStream(response.body);
+    } else {
+      await playBlobAudioStream(response.body);
+    }
+
+    return true;
+  }, [getToken]);
+
   const speak = useCallback((text) => {
     return new Promise(async (resolve) => {
       if (!text?.trim() || !mountedRef.current) { resolve(); return; }
@@ -263,41 +435,31 @@ export default function CallPage() {
       setIsSpeaking(true);
       setCurrentSpokenText(clean);
 
-      // Try ElevenLabs' higher-quality female voice first. This returns
-      // `null` if ELEVENLABS_API_KEY isn't configured or the request
-      // failed — in either case we fall back to browser TTS below so
-      // the app always works, with or without ElevenLabs set up.
+      // Try ElevenLabs' higher-quality female voice first, streamed for
+      // the lowest latency. This resolves to `false` if
+      // ELEVENLABS_API_KEY isn't configured, and throws if the request
+      // or playback failed — in either case we fall back to browser TTS
+      // below so the app always works, with or without ElevenLabs set up.
       try {
-        const result = await elevenLabsSpeak({ text: clean });
-        if (result?.audioBase64 && mountedRef.current) {
-          const audio = new Audio(`data:${result.mimeType};base64,${result.audioBase64}`);
-
-          audio.onended = () => {
-            console.log('[Lisa] Speech ended (ElevenLabs)');
-            if (mountedRef.current) {
-              setIsSpeaking(false);
-              setCurrentSpokenText('');
-              addLine('assistant', clean);
-            }
-            resolve();
-          };
-
-          audio.onerror = () => {
-            console.error('[Lisa] ElevenLabs audio playback failed, falling back to browser TTS');
-            speakWithBrowserTTS(clean).then(resolve);
-          };
-
-          await audio.play();
+        const spoke = await speakWithElevenLabsStream(clean);
+        if (spoke) {
+          console.log('[Lisa] Speech ended (ElevenLabs)');
+          if (mountedRef.current) {
+            setIsSpeaking(false);
+            setCurrentSpokenText('');
+            addLine('assistant', clean);
+          }
+          resolve();
           return;
         }
       } catch (err) {
-        console.error('[Lisa] ElevenLabs TTS failed, falling back to browser TTS:', err);
+        console.error('[Lisa] ElevenLabs streaming TTS failed, falling back to browser TTS:', err);
       }
 
       if (!mountedRef.current) { resolve(); return; }
       speakWithBrowserTTS(clean).then(resolve);
     });
-  }, [elevenLabsSpeak, speakWithBrowserTTS]);
+  }, [speakWithElevenLabsStream, speakWithBrowserTTS]);
 
   // ==================== Call Control ====================
 
@@ -306,7 +468,13 @@ export default function CallPage() {
     setTranscriptLines([]);
     setError(null);
     conversationIdRef.current = null;
-  }, []);
+
+    // Pre-warm the ElevenLabs voice-id cache now, ahead of the first
+    // reply, so the first streamed TTS request doesn't pay for an
+    // extra "list voices" round trip. Best-effort — silently ignored
+    // if ElevenLabs isn't configured or this fails.
+    warmElevenLabs().catch(() => {});
+  }, [warmElevenLabs]);
 
   const endCall = useCallback(() => {
     stopListening();

@@ -2,6 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Webhook } from "svix";
+import { speakStream } from "./ttsStream";
 
 /**
  * HTTP routes for Convex. Currently just the Clerk webhook, which
@@ -82,6 +83,39 @@ http.route({
     }
 
     return new Response(null, { status: 200 });
+  }),
+});
+
+/**
+ * Streaming ElevenLabs TTS (see convex/tts.ts for the handler and full
+ * explanation). Exposed as an HTTP action — rather than a normal
+ * Convex action reached via useAction — specifically so the response
+ * body can be a live stream that the browser starts playing before
+ * it's fully downloaded.
+ *
+ * The OPTIONS route below just answers the browser's CORS preflight
+ * (triggered by the POST route's JSON content-type + Authorization
+ * header); the actual request is handled by the POST route.
+ */
+http.route({
+  path: "/tts-stream",
+  method: "POST",
+  handler: speakStream,
+});
+
+http.route({
+  path: "/tts-stream",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
   }),
 });
 
