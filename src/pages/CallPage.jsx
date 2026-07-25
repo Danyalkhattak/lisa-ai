@@ -36,7 +36,7 @@ const CONVEX_SITE_URL =
  * buffered rather than waiting for the whole clip to download. This
  * is what gives the ElevenLabs path its low latency.
  */
-function playMseAudioStream(bodyStream) {
+function playMseAudioStream(bodyStream, { onStart } = {}) {
   return new Promise((resolve, reject) => {
     const mediaSource = new MediaSource();
     const audio = new Audio();
@@ -122,6 +122,7 @@ function playMseAudioStream(bodyStream) {
             // waiting for the rest of the stream to arrive.
             started = true;
             audio.play().catch(fail);
+            onStart?.();
           }
 
           return pump();
@@ -141,13 +142,13 @@ function playMseAudioStream(bodyStream) {
  * still uses the fast Flash v2.5 model — just not progressively
  * played while downloading.
  */
-async function playBlobAudioStream(bodyStream) {
+async function playBlobAudioStream(bodyStream, { onStart } = {}) {
   const blob = await new Response(bodyStream).blob();
   return new Promise((resolve, reject) => {
     const audio = new Audio(URL.createObjectURL(blob));
     audio.onended = resolve;
     audio.onerror = () => reject(new Error("Audio playback failed"));
-    audio.play().catch(reject);
+    audio.play().then(() => onStart?.()).catch(reject);
   });
 }
 
@@ -182,6 +183,8 @@ export default function CallPage() {
   const recognitionRef = useRef(null);
   const mountedRef = useRef(true);
   const conversationIdRef = useRef(null);
+  const revealIntervalRef = useRef(null);
+  const transcriptEndRef = useRef(null);
 
   // Convex
   const generateReply = useAction(api.ai.chat);
@@ -339,6 +342,37 @@ export default function CallPage() {
     }]);
   }, []);
 
+  // ==================== Text Reveal ====================
+
+  // Stops any in-progress word-by-word reveal (e.g. when speech ends
+  // early or is interrupted).
+  const stopWordReveal = useCallback(() => {
+    if (revealIntervalRef.current) {
+      clearInterval(revealIntervalRef.current);
+      revealIntervalRef.current = null;
+    }
+  }, []);
+
+  // Reveals `fullText` progressively, one word at a time, instead of
+  // dumping the whole reply on screen the instant it arrives. Used for
+  // the ElevenLabs path, where we don't get per-word timing from the
+  // audio itself — so we approximate natural speaking pace. Started
+  // right when audio playback actually begins (via onStart), not when
+  // the network request kicks off, so text and voice start together.
+  const revealWordByWord = useCallback((fullText, msPerWord = 210) => {
+    stopWordReveal();
+    const words = fullText.split(/\s+/).filter(Boolean);
+    let idx = 0;
+    setCurrentSpokenText('');
+    revealIntervalRef.current = setInterval(() => {
+      idx += 1;
+      setCurrentSpokenText(words.slice(0, idx).join(' '));
+      if (idx >= words.length) {
+        stopWordReveal();
+      }
+    }, msPerWord);
+  }, [stopWordReveal]);
+
   // ==================== TTS ====================
 
   // Browser SpeechSynthesis fallback — used automatically whenever
@@ -357,6 +391,15 @@ export default function CallPage() {
       if (female) utterance.voice = female;
       utterance.rate = 0.95;
       utterance.pitch = 1.1;
+
+      // The browser synthesizer fires a real 'word' boundary event as
+      // each word is actually spoken — use that instead of a timer so
+      // the on-screen text is exactly in sync with the voice.
+      utterance.onboundary = (event) => {
+        if (!mountedRef.current) return;
+        if (event.name && event.name !== 'word') return;
+        setCurrentSpokenText(clean.slice(0, event.charIndex).trimEnd());
+      };
 
       utterance.onend = () => {
         console.log('[Lisa] Speech ended (browser TTS)');
@@ -387,7 +430,7 @@ export default function CallPage() {
   // it's not configured (caller should fall back to browser TTS). Throws
   // on genuine playback/network errors so the caller's catch block can
   // fall back the same way the old implementation did.
-  const speakWithElevenLabsStream = useCallback(async (clean) => {
+  const speakWithElevenLabsStream = useCallback(async (clean, { onStart } = {}) => {
     if (!CONVEX_SITE_URL) return false;
 
     const token = await getToken({ template: 'convex' }).catch(() => null);
@@ -411,9 +454,9 @@ export default function CallPage() {
     console.log('[Lisa] Speaking via ElevenLabs (streamed)');
 
     if (typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('audio/mpeg')) {
-      await playMseAudioStream(response.body);
+      await playMseAudioStream(response.body, { onStart });
     } else {
-      await playBlobAudioStream(response.body);
+      await playBlobAudioStream(response.body, { onStart });
     }
 
     return true;
@@ -433,7 +476,9 @@ export default function CallPage() {
       if (!clean) { resolve(); return; }
 
       setIsSpeaking(true);
-      setCurrentSpokenText(clean);
+      // Don't dump the whole reply on screen yet — it gets revealed
+      // word by word once audio actually starts playing, below.
+      setCurrentSpokenText('');
 
       // Try ElevenLabs' higher-quality female voice first, streamed for
       // the lowest latency. This resolves to `false` if
@@ -441,9 +486,17 @@ export default function CallPage() {
       // or playback failed — in either case we fall back to browser TTS
       // below so the app always works, with or without ElevenLabs set up.
       try {
-        const spoke = await speakWithElevenLabsStream(clean);
+        const spoke = await speakWithElevenLabsStream(clean, {
+          // Fires the instant the first audio chunk is buffered and
+          // playback begins — not when the network request kicks off —
+          // so the text reveal starts right along with the voice.
+          onStart: () => {
+            if (mountedRef.current) revealWordByWord(clean);
+          },
+        });
         if (spoke) {
           console.log('[Lisa] Speech ended (ElevenLabs)');
+          stopWordReveal();
           if (mountedRef.current) {
             setIsSpeaking(false);
             setCurrentSpokenText('');
@@ -454,12 +507,13 @@ export default function CallPage() {
         }
       } catch (err) {
         console.error('[Lisa] ElevenLabs streaming TTS failed, falling back to browser TTS:', err);
+        stopWordReveal();
       }
 
       if (!mountedRef.current) { resolve(); return; }
       speakWithBrowserTTS(clean).then(resolve);
     });
-  }, [speakWithElevenLabsStream, speakWithBrowserTTS]);
+  }, [speakWithElevenLabsStream, speakWithBrowserTTS, revealWordByWord, stopWordReveal]);
 
   // ==================== Call Control ====================
 
@@ -479,6 +533,7 @@ export default function CallPage() {
   const endCall = useCallback(() => {
     stopListening();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    stopWordReveal();
 
     setIsInCall(false);
     setIsListening(false);
@@ -486,7 +541,7 @@ export default function CallPage() {
     setIsProcessing(false);
     setInterimText('');
     setCurrentSpokenText('');
-  }, [stopListening]);
+  }, [stopListening, stopWordReveal]);
 
   const handleMicPress = useCallback(() => {
     if (!isInCall) {
@@ -500,6 +555,14 @@ export default function CallPage() {
       startListening();
     }
   }, [isInCall, isListening, isProcessing, isSpeaking, startCall, startListening, stopListening]);
+
+  // ==================== Auto-scroll ====================
+
+  // Keeps the transcript pinned to the latest message/word as new
+  // lines arrive or the current line streams in word by word.
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [transcriptLines, interimText, currentSpokenText]);
 
   // ==================== Lifecycle ====================
 
@@ -735,6 +798,9 @@ export default function CallPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Scroll anchor — always scrolled into view on new content */}
+              <div ref={transcriptEndRef} />
             </>
           )}
         </div>
