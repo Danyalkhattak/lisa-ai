@@ -5,8 +5,8 @@ import { ArrowLeft, Shield, Sparkles } from "lucide-react";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen w-full bg-[#09090B] relative overflow-x-hidden overflow-y-auto">
-      {/* Background Effects - unchanged */}
+    <div className="min-h-[100dvh] w-full bg-[#09090B] relative overflow-x-hidden overflow-y-auto">
+      {/* Background Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-[30%] -left-[20%] w-[60%] h-[60%] bg-gradient-to-br from-violet-600/12 to-transparent rounded-full blur-[100px]" />
         <div className="absolute -bottom-[30%] -right-[20%] w-[50%] h-[50%] bg-gradient-to-tl from-cyan-600/8 to-transparent rounded-full blur-[80px]" />
@@ -19,17 +19,17 @@ export default function SignInPage() {
         />
       </div>
 
-      {/* Back Link – increased top & left spacing */}
+      {/* Back Link */}
       <Link
         to="/"
         className="absolute top-6 left-6 sm:top-8 sm:left-8 z-20 inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        <span className="text-xs sm:text-sm font-medium">Back to Home</span>
+        <span className="text-xs sm:text-sm font-medium">Back</span>
       </Link>
 
       {/* Centered Card */}
-      <div className="flex w-full min-w-0 items-center justify-center min-h-screen px-4 pt-16 sm:pt-24">
+      <div className="flex w-full min-w-0 items-center justify-center min-h-[100dvh] px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -54,7 +54,7 @@ export default function SignInPage() {
                 fontFamily: "'Inter', sans-serif",
               },
               elements: {
-                rootBox: "!w-full !max-w-full mx-auto",
+                rootBox: "!w-full !max-w-md !mx-auto !flex !justify-center",
                 card: "!bg-transparent !shadow-none !border-0 !p-0 !w-full !max-w-full",
                 headerTitle: "!text-lg sm:!text-xl !font-bold !text-white !font-['Space_Grotesk',sans-serif] !mb-1",
                 headerSubtitle: "!text-gray-500 !text-[11px] sm:!text-xs !leading-relaxed",
