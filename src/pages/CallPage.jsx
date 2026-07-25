@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Phone, 
-  PhoneOff, 
+import {
+  Phone,
+  PhoneOff,
   Volume2,
   Loader2,
   AlertCircle,
@@ -31,51 +31,52 @@ import { cn } from "@/lib/utils";
 export default function CallPage() {
   const { user } = useUser();
   const navigate = useNavigate();
-  
+
   // State
   const [isInCall, setIsInCall] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Transcript
   const [transcriptLines, setTranscriptLines] = useState([]);
   const [interimText, setInterimText] = useState('');
   const [currentSpokenText, setCurrentSpokenText] = useState('');
-  
+
   // Refs
   const recognitionRef = useRef(null);
   const mountedRef = useRef(true);
   const conversationIdRef = useRef(null);
-  
+
   // Convex
   const generateReply = useAction(api.ai.chat);
   const createConversation = useMutation(api.conversations.create);
+  const elevenLabsSpeak = useAction(api.tts.speak);
 
   // ==================== Speech Recognition ====================
-  
+
   const initRecognition = useCallback(() => {
     if (recognitionRef.current) return recognitionRef.current;
-    
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setError('Speech not supported. Use Chrome.');
       return null;
     }
-    
+
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    
+
     recognition.onresult = (event) => {
       if (!mountedRef.current) return;
-      
+
       let interim = '';
       let final = '';
-      
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
@@ -84,34 +85,34 @@ export default function CallPage() {
           interim += result[0].transcript;
         }
       }
-      
+
       if (interim) {
         setInterimText(interim);
       }
-      
+
       if (final) {
         setInterimText('');
         processAndSend(final);
       }
     };
-    
+
     recognition.onerror = (event) => {
       console.error('[Lisa] Speech error:', event.error);
       if (!mountedRef.current) return;
-      
+
       if (event.error === 'not-allowed') {
         setError('Microphone permission denied.');
       }
-      
+
       setIsListening(false);
     };
-    
+
     recognition.onend = () => {
       if (mountedRef.current) {
         setIsListening(false);
       }
     };
-    
+
     recognitionRef.current = recognition;
     return recognition;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,15 +120,15 @@ export default function CallPage() {
 
   const startListening = useCallback(() => {
     if (!mountedRef.current || isProcessing || isSpeaking) return;
-    
+
     const recognition = initRecognition();
     if (!recognition) return;
-    
+
     try {
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
-      
+
       recognition.abort();
       setTimeout(() => {
         if (mountedRef.current) {
@@ -145,7 +146,7 @@ export default function CallPage() {
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (e) {}
+      try { recognitionRef.current.stop(); } catch (e) { }
     }
     setIsListening(false);
   }, []);
@@ -154,14 +155,14 @@ export default function CallPage() {
 
   const processAndSend = useCallback(async (text) => {
     if (!text.trim() || !mountedRef.current) return;
-    
+
     console.log('[Lisa] Processing:', text.trim());
     const cleanText = text.trim();
     setInterimText('');
     addLine('user', cleanText);
-    
+
     setIsProcessing(true);
-    
+
     try {
       if (!conversationIdRef.current) {
         const convId = await createConversation({
@@ -194,60 +195,6 @@ export default function CallPage() {
     }
   }, [generateReply, createConversation]);
 
-  // ==================== TTS ====================
-
-  const speak = useCallback((text) => {
-    return new Promise((resolve) => {
-      if (!text?.trim() || !mountedRef.current) { resolve(); return; }
-
-      const clean = text
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/`[^`]+`/g, '')
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/https?:\/\/[^\s]+/g, '')
-        .trim();
-      
-      if (!clean) { resolve(); return; }
-
-      setIsSpeaking(true);
-      setCurrentSpokenText(clean);
-      
-      const utterance = new SpeechSynthesisUtterance(clean);
-      
-      const voices = window.speechSynthesis.getVoices();
-      const female = voices.find(v => 
-        /^(Samantha|Victoria|Karen|Tessa|Zira|Google US English Female)/i.test(v.name)
-      ) || voices.find(v => 
-        v.lang?.startsWith('en') && /female|woman/i.test(v.name)
-      );
-      
-      if (female) utterance.voice = female;
-      utterance.rate = 0.95;
-      utterance.pitch = 1.1;
-      
-      utterance.onend = () => {
-        console.log('[Lisa] Speech ended');
-        if (mountedRef.current) {
-          setIsSpeaking(false);
-          setCurrentSpokenText('');
-          addLine('assistant', clean);
-        }
-        resolve();
-      };
-      
-      utterance.onerror = (event) => {
-        console.error('[Lisa] Speech error:', event?.error);
-        if (mountedRef.current) {
-          setIsSpeaking(false);
-          setCurrentSpokenText('');
-        }
-        resolve();
-      };
-      
-      window.speechSynthesis.speak(utterance);
-    });
-  }, []);
-
   // ==================== Transcript ====================
 
   const addLine = useCallback((role, text) => {
@@ -257,6 +204,100 @@ export default function CallPage() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }]);
   }, []);
+
+  // ==================== TTS ====================
+
+  // Browser SpeechSynthesis fallback — used automatically whenever
+  // ElevenLabs isn't configured (no API key set) or a request to it fails.
+  const speakWithBrowserTTS = useCallback((clean) => {
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(clean);
+
+      const voices = window.speechSynthesis.getVoices();
+      const female = voices.find(v =>
+        /^(Samantha|Victoria|Karen|Tessa|Zira|Google US English Female)/i.test(v.name)
+      ) || voices.find(v =>
+        v.lang?.startsWith('en') && /female|woman/i.test(v.name)
+      );
+
+      if (female) utterance.voice = female;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.1;
+
+      utterance.onend = () => {
+        console.log('[Lisa] Speech ended (browser TTS)');
+        if (mountedRef.current) {
+          setIsSpeaking(false);
+          setCurrentSpokenText('');
+          addLine('assistant', clean);
+        }
+        resolve();
+      };
+
+      utterance.onerror = (event) => {
+        console.error('[Lisa] Speech error:', event?.error);
+        if (mountedRef.current) {
+          setIsSpeaking(false);
+          setCurrentSpokenText('');
+        }
+        resolve();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    });
+  }, [addLine]);
+
+  const speak = useCallback((text) => {
+    return new Promise(async (resolve) => {
+      if (!text?.trim() || !mountedRef.current) { resolve(); return; }
+
+      const clean = text
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`[^`]+`/g, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/https?:\/\/[^\s]+/g, '')
+        .trim();
+
+      if (!clean) { resolve(); return; }
+
+      setIsSpeaking(true);
+      setCurrentSpokenText(clean);
+
+      // Try ElevenLabs' higher-quality female voice first. This returns
+      // `null` if ELEVENLABS_API_KEY isn't configured or the request
+      // failed — in either case we fall back to browser TTS below so
+      // the app always works, with or without ElevenLabs set up.
+      try {
+        const result = await elevenLabsSpeak({ text: clean });
+        if (result?.audioBase64 && mountedRef.current) {
+          const audio = new Audio(`data:${result.mimeType};base64,${result.audioBase64}`);
+
+          audio.onended = () => {
+            console.log('[Lisa] Speech ended (ElevenLabs)');
+            if (mountedRef.current) {
+              setIsSpeaking(false);
+              setCurrentSpokenText('');
+              addLine('assistant', clean);
+            }
+            resolve();
+          };
+
+          audio.onerror = () => {
+            console.error('[Lisa] ElevenLabs audio playback failed, falling back to browser TTS');
+            speakWithBrowserTTS(clean).then(resolve);
+          };
+
+          await audio.play();
+          return;
+        }
+      } catch (err) {
+        console.error('[Lisa] ElevenLabs TTS failed, falling back to browser TTS:', err);
+      }
+
+      if (!mountedRef.current) { resolve(); return; }
+      speakWithBrowserTTS(clean).then(resolve);
+    });
+  }, [elevenLabsSpeak, speakWithBrowserTTS]);
 
   // ==================== Call Control ====================
 
@@ -270,7 +311,7 @@ export default function CallPage() {
   const endCall = useCallback(() => {
     stopListening();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
-    
+
     setIsInCall(false);
     setIsListening(false);
     setIsSpeaking(false);
@@ -284,7 +325,7 @@ export default function CallPage() {
       startCall();
       return;
     }
-    
+
     if (isListening) {
       stopListening();
     } else if (!isProcessing && !isSpeaking) {
@@ -296,12 +337,12 @@ export default function CallPage() {
 
   useEffect(() => {
     mountedRef.current = true;
-    
+
     if (window.speechSynthesis) {
       window.speechSynthesis.getVoices();
       window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
-    
+
     return () => {
       mountedRef.current = false;
       endCall();
@@ -330,9 +371,9 @@ export default function CallPage() {
           isListening ? "bg-emerald-500/18" : isSpeaking ? "bg-violet-500/15" : "bg-violet-500/8"
         )} />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-[100px]" />
-        
+
         {/* Subtle noise texture */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.012]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
@@ -344,21 +385,21 @@ export default function CallPage() {
       <header className="flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 relative z-10">
         <div className="flex items-center gap-3 sm:gap-4">
           {/* Avatar with custom favicon */}
-          <img 
-            src="/favicon.png" 
-            alt="Lisa" 
+          <img
+            src="/favicon.png"
+            alt="Lisa"
             className={cn(
               "w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover transition-all duration-300",
               isListening && "ring-2 ring-emerald-500/50",
               isSpeaking && "ring-2 ring-violet-500/50"
             )}
           />
-          
+
           {/* Name + Status */}
           <div>
             <h1 className="text-white font-semibold text-base sm:text-lg tracking-tight">Lisa</h1>
-            
-            <motion.div 
+
+            <motion.div
               layout
               className={cn(
                 "flex items-center gap-1.5 text-xs font-medium transition-colors duration-300",
@@ -372,7 +413,7 @@ export default function CallPage() {
                 <status.icon className={cn("w-3.5 h-3.5", status.spin && "animate-spin")} />
               )}
               <span>{status.label}</span>
-              
+
               {/* Animated dots when listening/speaking */}
               {(isListening || isSpeaking) && (
                 <span className="flex gap-0.5 ml-1">
@@ -397,7 +438,7 @@ export default function CallPage() {
           >
             <Home className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
           </motion.button>
-          
+
 
           {/* Settings button */}
           <motion.button
@@ -409,12 +450,12 @@ export default function CallPage() {
           >
             <Settings className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
           </motion.button>
-          
+
           {/* Live badge */}
           <AnimatePresence>
             {isInCall && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }} 
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20"
@@ -429,7 +470,7 @@ export default function CallPage() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col relative z-10 px-4 sm:px-6 py-3 sm:py-4 overflow-hidden">
-        
+
         {/* Transcript Area */}
         <div className="flex-1 max-w-3xl mx-auto w-full overflow-y-auto py-4 space-y-3 scroll-hide">
           {!isInCall && transcriptLines.length === 0 ? (
@@ -443,8 +484,8 @@ export default function CallPage() {
               >
                 <img src="/favicon.png" alt="Lisa" className="w-24 h-24 rounded-2xl object-cover opacity-60" />
               </motion.div>
-              
-              <motion.h2 
+
+              <motion.h2
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35, duration: 0.5 }}
@@ -452,8 +493,8 @@ export default function CallPage() {
               >
                 Start a conversation
               </motion.h2>
-              
-              <motion.p 
+
+              <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.45, duration: 0.5 }}
@@ -461,20 +502,6 @@ export default function CallPage() {
               >
                 Tap the microphone below and speak naturally. Lisa will respond.
               </motion.p>
-              
-              {/* Hint cards */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55, duration: 0.5 }}
-                className="flex flex-wrap gap-2 mt-8 justify-center"
-              >
-                {["What's the weather?", "Tell me a joke", "Explain AI"].map((hint) => (
-                  <span key={hint} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-gray-500 text-xs">
-                    "{hint}"
-                  </span>
-                ))}
-              </motion.div>
             </div>
           ) : (
             <>
@@ -506,12 +533,12 @@ export default function CallPage() {
                   </motion.div>
                 ))}
               </AnimatePresence>
-              
+
               {/* Interim text (user speaking) */}
               <AnimatePresence>
                 {interimText && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 8 }} 
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     className="flex justify-end"
@@ -527,8 +554,8 @@ export default function CallPage() {
               {/* Current spoken text (Lisa speaking) */}
               <AnimatePresence>
                 {currentSpokenText && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 8 }} 
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     className="flex justify-start"
@@ -556,8 +583,8 @@ export default function CallPage() {
               <div className="p-3.5 rounded-xl bg-red-500/8 border border-red-500/15 flex items-center gap-3 text-red-400 text-sm backdrop-blur-sm">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1">{error}</span>
-                <button 
-                  onClick={() => setError(null)} 
+                <button
+                  onClick={() => setError(null)}
                   className="p-1 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -567,29 +594,31 @@ export default function CallPage() {
           )}
         </AnimatePresence>
 
-        {/* Controls Area - Premium styling */}
+        {/* Controls Area – perfectly centred mic */}
         <div className="flex-shrink-0 pb-6 sm:pb-8 pt-4">
-          <div className="max-w-3xl mx-auto flex items-center justify-center gap-5">
-            
-            {/* End Call Button */}
-            <AnimatePresence>
-              {isInCall && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.92 }}
-                  onClick={endCall}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 flex items-center justify-center shadow-lg shadow-red-500/30 transition-all"
-                  title="End call"
-                >
-                  <PhoneOff className="w-6 h-6 text-white" />
-                </motion.button>
-              )}
-            </AnimatePresence>
+          <div className="max-w-3xl mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-4">
 
-            {/* Main Microphone Button - Enhanced */}
+            {/* Left column: End call button (visible only when in call) */}
+            <div className="flex justify-start">
+              <AnimatePresence>
+                {isInCall && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={endCall}
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 flex items-center justify-center shadow-lg shadow-red-500/30 transition-all"
+                    title="End call"
+                  >
+                    <PhoneOff className="w-6 h-6 text-white" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Centre column: Microphone button */}
             <motion.button
               whileHover={!isProcessing && !isSpeaking ? { scale: 1.04 } : {}}
               whileTap={{ scale: 0.92 }}
@@ -597,16 +626,14 @@ export default function CallPage() {
               disabled={isProcessing || isSpeaking}
               className={cn(
                 "relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-300 ease-out",
-                isListening 
-                  ? "bg-gradient-to-br from-emerald-400 to-green-500 shadow-2xl shadow-emerald-500/40 scale-105" 
-                  : isInCall 
-                    ? "bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/40 hover:scale-[1.02]"
-                    : "bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/40 hover:scale-[1.02]",
+                isListening
+                  ? "bg-gradient-to-r from-emerald-400 to-green-500 shadow-2xl shadow-emerald-500/40 scale-105"
+                  : "bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 shadow-xl shadow-violet-500/30 hover:shadow-violet-500/40 hover:scale-[1.02]",
                 (isProcessing || isSpeaking) && "opacity-75 cursor-not-allowed"
               )}
               title={isListening ? "Tap to stop" : isInCall ? "Tap to speak" : "Start conversation"}
             >
-              {/* Pulse ring effect when active */}
+              {/* pulse rings (keep exactly as they were) */}
               {(isListening || isSpeaking) && (
                 <>
                   <motion.div
@@ -623,7 +650,7 @@ export default function CallPage() {
                   />
                 </>
               )}
-              
+
               {isListening ? (
                 <Mic className="w-8 h-8 sm:w-10 sm:h-10 text-white relative z-10" />
               ) : (
@@ -631,23 +658,23 @@ export default function CallPage() {
               )}
             </motion.button>
 
-            {/* Spacer for balance */}
-            {!isInCall && <div className="w-14 h-14 sm:w-16 sm:h-16" />}
+            {/* Right column: empty – balances the left column to keep mic exactly centred */}
+            <div />
           </div>
-          
-          {/* Instruction Text - Refined */}
-          <motion.p 
+
+          {/* Instruction text */}
+          <motion.p
             key={isInCall ? 'in-call' : 'idle'}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mt-5 text-gray-500 text-xs sm:text-sm font-medium"
           >
-            {isInCall 
-              ? isListening 
-                ? "Listening... tap to stop" 
-                : isProcessing 
-                  ? "Thinking..." 
-                  : isSpeaking 
+            {isInCall
+              ? isListening
+                ? "Listening... tap to stop"
+                : isProcessing
+                  ? "Thinking..."
+                  : isSpeaking
                     ? "Speaking..."
                     : "Tap microphone to speak"
               : "Tap microphone to begin"

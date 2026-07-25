@@ -68,6 +68,7 @@ export const update = mutation({
     speechRate: v.optional(v.number()),
     geminiModel: v.optional(v.string()),
     autoSpeak: v.optional(v.boolean()),
+    voiceEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { identity } = await getAuthedUserRow(ctx);

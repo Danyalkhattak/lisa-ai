@@ -19,8 +19,9 @@ export const DEFAULT_SETTINGS = {
   language: "en-US",
   inputLanguage: "en-US",
   speechRate: 1.0,
-  geminiModel: "gemini-1.5-flash",
+  geminiModel: "gemini-3.5-flash-lite",
   autoSpeak: true,
+  voiceEnabled: true,
 };
 
 /**

@@ -73,7 +73,13 @@ What you can do:
 
 Important: Keep responses concise and conversational. You're a voice assistant, so your responses will be spoken aloud.`;
 
-/** Default model - Gemini 3.5 Flash Lite (fast, cost-effective) */
+/**
+ * Default model - Gemini 3.5 Flash Lite (fast, cost-effective).
+ * NOTE: verify this model name is live on your Gemini API key before
+ * final submission — Google occasionally renames/retires preview
+ * model ids. If a call fails with a 404 "model not found", check
+ * https://ai.google.dev/gemini-api/docs/models for the current name.
+ */
 const DEFAULT_MODEL = "gemini-3.5-flash-lite";
 
 /** Maximum messages for context */

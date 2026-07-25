@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireClerkSubject } from "./auth";
 import { sanitizeTitle } from "./lib";
@@ -61,8 +61,13 @@ export const listPinned = query({
  * Get a single conversation. Returns `null` if it doesn't exist or
  * doesn't belong to the caller — never throws for missing/foreign
  * conversations, so the client can render a friendly 404 state.
+ *
+ * Internal-only: currently called exclusively from `ai.ts`'s `chat`
+ * action via `internal.conversations.get`. If the dashboard ever needs
+ * to fetch a single conversation directly, add a separate public
+ * `query` rather than exposing this one.
  */
-export const get = query({
+export const get = internalQuery({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
     const clerkId = await requireClerkSubject(ctx);

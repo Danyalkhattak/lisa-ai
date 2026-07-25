@@ -33,13 +33,16 @@ export default defineSchema({
     updatedAt: v.number(),
   })
   .index("by_user", ["userId", "deletedAt"])
-  .index("by_user_recent", ["userId", "lastMessageAt"]),
+  .index("by_user_recent", ["userId", "lastMessageAt"])
+  .index("by_user_pinned", ["userId", "pinned"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),
     userId: v.string(),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
     content: v.string(),
+    toolName: v.optional(v.string()),
+    toolResult: v.optional(v.any()),
     createdAt: v.number(),
   })
   .index("by_conversation", ["conversationId", "createdAt"])
@@ -47,8 +50,15 @@ export default defineSchema({
 
   userSettings: defineTable({
     userId: v.string(),
+    voice: v.optional(v.string()), // browser TTS voice name, "" = browser default
+    language: v.optional(v.string()), // output/TTS language, e.g. "en-US"
+    inputLanguage: v.optional(v.string()), // speech recognition language
+    speechRate: v.optional(v.number()), // TTS playback rate
+    geminiModel: v.optional(v.string()), // which Gemini model to use for chat
     autoSpeak: v.boolean(), // speak responses aloud
     voiceEnabled: v.boolean(), // voice mode on/off
+    ttsProvider: v.optional(v.string()), // "elevenlabs" | "browser", legacy/manual field
+    elevenlabsVoiceEn: v.optional(v.string()), // legacy ElevenLabs voice id field
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 });

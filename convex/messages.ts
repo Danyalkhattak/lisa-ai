@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireClerkSubject } from "./auth";
 
@@ -23,10 +23,15 @@ import { requireClerkSubject } from "./auth";
 
 /**
  * List messages in a conversation, oldest first.
- * The dashboard's transcript view uses this with infinite scroll —
- * pass `limit` to control the initial page size.
+ *
+ * Internal-only: currently called exclusively from `ai.ts`'s `chat`
+ * action to build Gemini's conversation context. The dashboard
+ * currently keeps its own local transcript state (see CallPage.jsx)
+ * rather than querying this directly. If the dashboard later needs
+ * a persisted transcript view with infinite scroll, add a separate
+ * public `query` for that rather than exposing this one.
  */
-export const list = query({
+export const list = internalQuery({
   args: {
     conversationId: v.id("conversations"),
     limit: v.optional(v.number()),
@@ -58,8 +63,11 @@ export const list = query({
  * NOTE: this does NOT trigger the AI response — that's an action
  * (Section 6) the client calls separately. Keeping them separate
  * means the user's message is in the DB even if Gemini is down.
+ *
+ * Internal-only: called from `ai.ts`'s `chat` action, which is the
+ * client's single entry point for sending a message end-to-end.
  */
-export const send = mutation({
+export const send = internalMutation({
   args: {
     conversationId: v.id("conversations"),
     content: v.string(),
@@ -100,8 +108,11 @@ export const send = mutation({
  * are set when the assistant called a tool (weather, email, search,
  * summary) — the dashboard uses these to render structured result
  * cards instead of plain text.
+ *
+ * Internal-only: called from `ai.ts`'s `chat` action after Gemini
+ * returns a reply.
  */
-export const saveAssistantMessage = mutation({
+export const saveAssistantMessage = internalMutation({
   args: {
     conversationId: v.id("conversations"),
     content: v.string(),

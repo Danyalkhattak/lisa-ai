@@ -12,9 +12,11 @@ import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
 import type * as clerkWebhook from "../clerkWebhook.js";
 import type * as conversations from "../conversations.js";
+import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as messages from "../messages.js";
 import type * as tools from "../tools.js";
+import type * as tts from "../tts.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 
@@ -29,9 +31,11 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   clerkWebhook: typeof clerkWebhook;
   conversations: typeof conversations;
+  http: typeof http;
   lib: typeof lib;
   messages: typeof messages;
   tools: typeof tools;
+  tts: typeof tts;
   userSettings: typeof userSettings;
   users: typeof users;
 }>;

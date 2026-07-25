@@ -19,26 +19,26 @@ export default function SignInPage() {
         />
       </div>
 
-      {/* Back Link */}
+      {/* Back Link – increased top & left spacing */}
       <Link
         to="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
+        className="absolute top-6 left-6 sm:top-8 sm:left-8 z-20 inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
       >
         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-        <span className="text-sm font-medium">Back to Home</span>
+        <span className="text-xs sm:text-sm font-medium">Back to Home</span>
       </Link>
 
       {/* Centered Card */}
-      <div className="flex items-center justify-center min-h-screen px-4">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-16 sm:pt-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-md" // 👈 changed from max-w-xl to max-w-md
+          className="w-full max-w-xs sm:max-w-md"
         >
           <SignIn 
-          afterSignInUrl="/call"
-          afterSignUpUrl="/call"
+            afterSignInUrl="/call"
+            afterSignUpUrl="/call"
             appearance={{
               variables: {
                 colorPrimary: "#7C3AED",
@@ -56,20 +56,20 @@ export default function SignInPage() {
               elements: {
                 rootBox: "w-full !max-w-full",
                 card: "!bg-transparent !shadow-none !border-0 !p-0 !w-full !max-w-full",
-                headerTitle: "!text-xl sm:!text-2xl !font-bold !text-white !font-['Space_Grotesk',sans-serif] !mb-1", // 👈 smaller text
-                headerSubtitle: "!text-gray-500 !text-xs !leading-relaxed", // 👈 smaller text
-                header: "!block !mb-6", // 👈 less margin
-                socialButtonsBlockButton: "!bg-white/[0.08] hover:!bg-white/15 !border-white/20 hover:!border-white/30 !text-white !font-medium !rounded-xl !transition-all !py-2.5 !w-full !max-w-full !box-border", // 👈 slightly less padding
+                headerTitle: "!text-lg sm:!text-xl !font-bold !text-white !font-['Space_Grotesk',sans-serif] !mb-1",
+                headerSubtitle: "!text-gray-500 !text-[11px] sm:!text-xs !leading-relaxed",
+                header: "!block !mb-4 sm:!mb-6",
+                socialButtonsBlockButton: "!bg-white/[0.08] hover:!bg-white/15 !border-white/20 hover:!border-white/30 !text-white !font-medium !rounded-xl !transition-all !py-1.5 sm:!py-2.5 !w-full !max-w-full !box-border",
                 socialButtonsBlockButtonText: "!text-white !font-medium !text-sm",
                 socialButtonsBlockButtonArrow: "!text-white",
-                formFieldLabel: "!text-gray-300 !text-xs !font-medium !mb-1.5 !block", // 👈 smaller
-                formFieldInput: "!bg-[#18181B] !border-white/15 !text-white !rounded-xl focus:!border-violet-500 focus:!ring-2 focus:!ring-violet-500/25 !px-3.5 !py-2.5 !text-sm !transition-all !w-full !max-w-full !box-border", // 👈 smaller padding
-                formButtonPrimary: "!bg-gradient-to-r !from-violet-500 !via-purple-500 !to-fuchsia-500 hover:!from-violet-600 hover:!to-fuchsia-600 !text-white !font-semibold !normal-case !rounded-xl !shadow-lg !shadow-violet-500/30 !transition-all !py-3 !w-full !max-w-full !box-border", // 👈 smaller padding
-                formButtonSecondary: "!bg-white/[0.06] hover:!bg-white/10 !border-white/15 !text-white !font-medium !normal-case !rounded-xl !transition-all !py-2.5 !w-full !max-w-full !box-border",
+                formFieldLabel: "!text-gray-300 !text-[11px] !mb-1 sm:!text-xs sm:!mb-1.5 !font-medium !block",
+                formFieldInput: "!bg-[#18181B] !border-white/15 !text-white !rounded-xl focus:!border-violet-500 focus:!ring-2 focus:!ring-violet-500/25 !px-3 !py-2 sm:!px-3.5 sm:!py-2.5 !text-sm !transition-all !w-full !max-w-full !box-border",
+                formButtonPrimary: "!bg-gradient-to-r !from-violet-500 !via-purple-500 !to-fuchsia-500 hover:!from-violet-600 hover:!to-fuchsia-600 !text-white !font-semibold !normal-case !rounded-xl !shadow-lg !shadow-violet-500/30 !transition-all !py-2.5 sm:!py-3 !w-full !max-w-full !box-border",
+                formButtonSecondary: "!bg-white/[0.06] hover:!bg-white/10 !border-white/15 !text-white !font-medium !normal-case !rounded-xl !transition-all !py-2 sm:!py-2.5 !w-full !max-w-full !box-border",
                 formButtonReset: "!text-gray-400 hover:!text-white !text-sm !font-normal",
                 footerActionLink: "!text-violet-400 hover:!text-violet-300 !font-medium !text-sm",
                 footerActionText: "!text-gray-500 !text-sm",
-                dividerText: "!text-gray-500 !text-xs !bg-transparent", // 👈 smaller
+                dividerText: "!text-gray-500 !text-[10px] sm:!text-xs !bg-transparent",
                 identityPreview: "!text-white",
                 identityPreviewText: "!text-gray-300",
                 identityPreviewEditButton: "!text-violet-400 hover:!text-violet-300",
@@ -101,12 +101,12 @@ export default function SignInPage() {
                 popoverCard: "!bg-[#111113] !border-white/10 !rounded-2xl !shadow-2xl",
                 tooltipArrow: "!fill-[#111113]",
                 tooltipContent: "!bg-[#111113] !text-white !text-sm !border !border-white/10",
-                formField: "!mb-3", // 👈 reduced spacing
-                form: "!space-y-3", // 👈 reduced spacing
+                formField: "!mb-2 sm:!mb-3",
+                form: "!space-y-2 sm:!space-y-3",
                 formResendCodeLink: "!text-violet-400 hover:!text-violet-300 !text-sm",
-                footer: "!mt-4 !pt-3", // 👈 reduced spacing
+                footer: "!mt-3 !pt-2 sm:!mt-4 sm:!pt-3",
                 socialButtonsDividerLine: "!bg-white/10",
-                socialButtonsBlock: "!gap-2", // 👈 reduced gap
+                socialButtonsBlock: "!gap-2",
                 socialButtonsBlockButtonType: "!flex-1",
                 formFieldSuccessMessage: "!text-emerald-400 !text-sm",
                 formFieldErrorMessage: "!text-red-400 !text-sm",

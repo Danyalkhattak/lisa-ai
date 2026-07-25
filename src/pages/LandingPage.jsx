@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { 
-  Phone, 
-  Sparkles, 
-  ArrowRight, 
-  Mic, 
-  Brain, 
-  Shield, 
+import {
+  Phone,
+  Sparkles,
+  ArrowRight,
+  Mic,
+  Brain,
+  Shield,
+  Github,
   Zap,
   ChevronRight,
   Star,
@@ -81,17 +82,17 @@ export default function LandingPage() {
         <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-gradient-to-br from-purple-600/15 to-transparent rounded-full blur-[120px]" />
         <div className="absolute -bottom-[40%] -right-[20%] w-[70%] h-[70%] bg-gradient-to-tl from-cyan-600/12 to-transparent rounded-full blur-[100px]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] bg-pink-500/8 rounded-full blur-[80px]" />
-        
+
         {/* Noise texture overlay for depth */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.015]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
           }}
         />
-        
+
         {/* Grid pattern overlay - very subtle */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
@@ -101,30 +102,32 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation - Premium Style */}
-      <motion.nav 
+      <motion.nav
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 flex items-center justify-between px-6 py-5 max-w-7xl mx-auto"
+        className="relative z-10 flex items-center justify-between px-3 py-2.5 sm:px-6 sm:py-5 max-w-7xl mx-auto"
       >
         <div className="flex items-center gap-3">
-          <img src="/favicon.png" alt="Lisa AI" className="w-10 h-10 rounded-xl object-cover" />
+          <img src="/favicon.png" alt="Lisa AI" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-cover" />
           <span className="text-xl font-bold text-white tracking-tight font-['Space_Grotesk',sans-serif]">Lisa AI</span>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Link 
-            to="/sign-in" 
-            className="text-gray-400 hover:text-white transition-colors text-sm font-medium px-4 py-2 hover:bg-white/[0.04] rounded-lg"
+          <Link
+            to="/sign-in"
+            className="text-gray-400 hover:text-white transition-colors font-medium px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm hover:bg-white/[0.04] rounded-lg"
           >
             Sign In
           </Link>
-          <Link 
+          <Link
             to="/sign-up"
-            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white text-sm font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            className="group flex items-center gap-2 px-4 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm rounded-xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           >
-            Get Started Free
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            {/* Mobile: Mic icon only  |  Desktop: full text + arrow */}
+            <Mic className="w-4 h-4 sm:hidden" />
+            <span className="hidden sm:inline">Get Started Free</span>
+            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
       </motion.nav>
@@ -137,14 +140,14 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] mb-8 backdrop-blur-sm"
+            className="inline-flex items-center flex-wrap gap-1.5 px-3 py-1.5 sm:gap-2.5 sm:px-4 sm:py-2 rounded-full bg-white/[0.04] border border-white/[0.08] mb-8 backdrop-blur-sm"
           >
-            <span className="flex items-center gap-1.5 text-xs font-medium text-violet-400">
+            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-violet-400">
               <Sparkles className="w-3.5 h-3.5 fill-violet-400/20" />
-              Now powered by Gemini 2.0
+              Now powered by Gemini 3.5 Flash Lite
             </span>
-            <span className="w-px h-4 bg-white/10" />
-            <span className="text-xs text-gray-500">v1.0 — Free forever</span>
+            <span className="w-px h-3 sm:h-4 bg-white/10" />
+            <span className="text-xs text-gray-500">v1.0</span>
           </motion.div>
 
           {/* Main Heading - Bolder, more impactful */}
@@ -180,16 +183,16 @@ export default function LandingPage() {
           >
             <Link
               to="/sign-up"
-              className="group relative inline-flex items-center justify-center gap-3 px-8 py-4.5 rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white font-semibold text-lg hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              className="group relative inline-flex items-center justify-center gap-3 px-8 py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white font-semibold text-lg hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Mic className="w-5 h-5" />
               Start Talking
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            
+
             <Link
               to="/sign-in"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4.5 rounded-2xl border border-white/10 text-white font-semibold text-lg hover:bg-white/[0.03] hover:border-white/15 transition-all duration-300"
+              className="inline-flex items-center justify-center gap-2 px-8 py-2.5 rounded-2xl border border-white/10 text-white font-semibold text-lg hover:bg-white/[0.03] hover:border-white/15 transition-all duration-300"
             >
               Sign In
             </Link>
@@ -220,23 +223,23 @@ export default function LandingPage() {
             <div className="relative mx-auto max-w-md">
               {/* Glow effect behind phone - more refined */}
               <div className="absolute inset-0 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/15 to-cyan-500/15 blur-3xl scale-110" />
-              
+
               {/* Phone mockup - More realistic */}
               <div className="relative bg-gradient-to-b from-[#131315] to-[#0a0a0c] rounded-[2.75rem] p-[3px] shadow-2xl shadow-black/60 ring-1 ring-white/[0.05]">
                 {/* Notch area */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-[#0a0a0c] rounded-b-2xl z-10" />
-                
+
                 <div className="bg-[#09090B] rounded-[2.65rem] p-5 min-h-[520px] flex flex-col relative overflow-hidden">
                   {/* Status bar mock */}
                   <div className="flex items-center justify-between px-2 mb-4 text-[11px] text-gray-500">
                     <span>9:41</span>
                     <div className="flex items-center gap-1">
                       <div className="w-4 h-2 border border-current rounded-sm relative">
-                        <div className="absolute inset-0.5 bg-current rounded-sm" style={{width: '70%'}} />
+                        <div className="absolute inset-0.5 bg-current rounded-sm" style={{ width: '70%' }} />
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Mock header */}
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
@@ -255,7 +258,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Mock messages - More realistic conversation */}
                   <div className="flex-1 space-y-3 px-1">
                     <div className="flex justify-end">
@@ -263,7 +266,7 @@ export default function LandingPage() {
                         Hey Lisa! What can you help me with today?
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-start">
                       <div className="space-y-2 max-w-[85%]">
                         <div className="px-4 py-2.5 rounded-2xl rounded-bl-md bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 border border-violet-500/20 text-violet-100 text-sm">
@@ -273,7 +276,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Mock input area */}
                   <div className="pt-5 space-y-3">
                     <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
@@ -284,7 +287,7 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Floating notification card */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
@@ -385,16 +388,16 @@ export default function LandingPage() {
                 {index < steps.length - 1 && (
                   <div className="hidden md:block absolute top-10 left-[55%] w-[90%] h-px bg-gradient-to-r from-white/15 via-white/10 to-transparent" />
                 )}
-                
+
                 <div className="text-center">
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.08] mb-5 group-hover:scale-105 group-hover:border-white/15 transition-all duration-300">
                     <step.icon className="w-8 h-8 text-violet-400" />
                   </div>
-                  
+
                   <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-violet-500/15 border border-violet-500/30 mb-3">
                     <span className="text-xs font-bold text-violet-400 font-['Space_Grotesk',sans-serif]">{step.step}</span>
                   </div>
-                  
+
                   <h3 className="text-lg font-semibold text-white mb-2 font-['Space_Grotesk',sans-serif]">{step.title}</h3>
                   <p className="text-gray-500 text-sm">{step.desc}</p>
                 </div>
@@ -448,30 +451,30 @@ export default function LandingPage() {
             {/* Background gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-violet-600/15 via-fuchsia-600/15 to-cyan-600/15" />
             <div className="absolute inset-0 bg-[#0c0c0e]/70 backdrop-blur-2xl" />
-            
+
             {/* Decorative elements */}
             <div className="absolute top-0 left-1/4 w-64 h-64 bg-violet-500/20 rounded-full blur-[80px]" />
             <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-cyan-500/15 rounded-full blur-[60px]" />
-            
+
             <div className="relative px-8 py-20 sm:px-16 text-center">
               <img src="/favicon.png" alt="" className="w-16 h-16 rounded-2xl object-cover mb-6" />
-              
+
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 font-['Space_Grotesk',sans-serif]">
                 Ready to meet Lisa?
               </h2>
               <p className="text-gray-400 text-lg mb-10 max-w-lg mx-auto leading-relaxed">
                 Join thousands experiencing the future of AI conversation. Free forever.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   to="/sign-up"
-                  className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white font-semibold text-lg hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                  className="group inline-flex items-center gap-2 px-8 py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 text-white font-semibold text-lg hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Get Started Free
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
-                
+
                 <Link
                   to="/sign-in"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border border-white/10 text-white font-semibold text-lg hover:bg-white/[0.03] transition-all duration-300"
@@ -488,6 +491,8 @@ export default function LandingPage() {
       <footer className="relative z-10 border-t border-white/[0.06] py-12 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+
+            {/* LEFT – untouched */}
             <div className="flex items-center gap-3">
               <img src="/favicon.png" alt="" className="w-9 h-9 rounded-lg object-cover" />
               <div>
@@ -495,20 +500,20 @@ export default function LandingPage() {
                 <span className="text-gray-600 text-sm ml-2">© 2026</span>
               </div>
             </div>
-            
+
+            {/* RIGHT – only the GitHub link */}
             <div className="flex items-center gap-6 text-sm text-gray-500">
-              <span className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4" />
-                Secure
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4" />
-                Powered by Gemini
-              </span>
-              <span>•</span>
-              <span>Made with care</span>
+              <a
+                href="https://github.com/Danyalkhattak/lisa-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 hover:text-gray-300 transition-colors"
+              >
+                <Github className="w-4 h-4" />
+                Lisa AI.
+              </a>
             </div>
+
           </div>
         </div>
       </footer>

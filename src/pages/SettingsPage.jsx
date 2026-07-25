@@ -20,35 +20,22 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { cn } from "@/lib/utils";
 
-/**
- * SettingsPage — Premium Settings UI
- * 
- * Design Philosophy:
- * - Clean card-based layout
- * - Clear visual hierarchy
- * - Professional interactions
- */
-
 export default function SettingsPage() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const navigate = useNavigate();
 
-  // State
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
 
-  // Mutations
   const clearConversations = useMutation(api.conversations.clearAll);
 
-  // Handle logout
   const handleLogout = async () => {
     await signOut();
-    navigate("/");
+    navigate("/call");
   };
 
-  // Handle clear history
   const handleClearHistory = async () => {
     try {
       await clearConversations();
@@ -62,10 +49,8 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#09090B]">
-      {/* Header - Premium Style */}
       <header className="sticky top-0 z-20 bg-[#09090B]/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center gap-3">
-          {/* Back button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -86,7 +71,6 @@ export default function SettingsPage() {
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         
-        {/* Profile Card - Enhanced */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,7 +78,6 @@ export default function SettingsPage() {
         >
           <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm">
             <div className="flex items-center gap-4">
-              {/* Avatar */}
               <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
                 {user?.imageUrl ? (
                   <img 
@@ -107,7 +90,6 @@ export default function SettingsPage() {
                 )}
               </div>
               
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-lg truncate font-['Space_Grotesk',sans-serif]">
                   {user?.firstName} {user?.lastName}
@@ -117,7 +99,6 @@ export default function SettingsPage() {
                 </p>
               </div>
 
-              {/* Status badge */}
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs text-emerald-400 font-medium">Active</span>
@@ -126,7 +107,6 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* Voice Settings - Enhanced */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -164,7 +144,6 @@ export default function SettingsPage() {
                 </div>
               </div>
               
-              {/* Toggle Switch - Enhanced */}
               <div 
                 onClick={(e) => { e.stopPropagation(); setVoiceEnabled(!voiceEnabled); }}
                 className={cn(
@@ -183,7 +162,6 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* Data Management - Enhanced */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -245,7 +223,6 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* Success message */}
             <AnimatePresence>
               {cleared && (
                 <motion.div
@@ -264,7 +241,6 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* Account Actions - Enhanced */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -293,7 +269,7 @@ export default function SettingsPage() {
           </button>
         </motion.section>
 
-        {/* App Info Card - Premium footer */}
+        {/* App Info Card – logo now on the left of Lisa AI */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -301,29 +277,12 @@ export default function SettingsPage() {
           className="pt-8 pb-4"
         >
           <div className="text-center space-y-4">
-            {/* Logo */}
-            <img src="/favicon.png" alt="Lisa AI" className="w-16 h-16 rounded-2xl object-cover" />
-            
-            <div className="space-y-1">
-              <p className="text-white font-semibold font-['Space_Grotesk',sans-serif]">Lisa AI</p>
-              <p className="text-xs text-gray-600">Version 1.0.0</p>
-            </div>
-            
-            <div className="flex items-center justify-center gap-5 pt-2">
-              <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                <Sparkles className="w-3.5 h-3.5 text-violet-500/60" />
-                <span>Powered by Gemini</span>
-              </div>
-              <div className="w-px h-3 bg-white/10" />
-              <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                <Shield className="w-3.5 h-3.5 text-emerald-500/60" />
-                <span>Secured by Clerk</span>
+            <div className="flex items-center justify-center">
+              <img src="/favicon.png" alt="Lisa AI" className="w-10 h-10 rounded-2xl object-cover" />
+              <div className="text-left">
+                <p className="text-white font-semibold font-['Space_Grotesk',sans-serif]">Lisa AI</p>
               </div>
             </div>
-            
-            <p className="text-xs text-gray-700 pt-2">
-              Made with care for better conversations
-            </p>
           </div>
         </motion.div>
       </main>
