@@ -11,7 +11,6 @@ A voice-controlled AI assistant built for my university internship project.
 - **Tap-to-Talk Mode** — Press the mic button to speak, release when done
 - **Voice Responses** — Lisa speaks back with natural female TTS
 - **AI-Powered Conversations** — Smart responses powered by Google Gemini
-- **Contacts Management** — Add, edit, delete contacts
 - **Authentication** — Secure login/signup with Clerk
 - **Responsive Design** — Works on mobile and desktop
 
@@ -73,7 +72,6 @@ lisa-ai/
 ├── src/
 │   ├── pages/
 │   │   ├── CallPage.jsx       # Main voice assistant ⭐
-│   │   ├── ContactsPage.jsx   # Contact management
 │   │   ├── SettingsPage.jsx   # Settings & logout
 │   │   ├── LandingPage.jsx    # Public landing page
 │   │   ├── SignInPage.jsx     # Login
@@ -84,7 +82,6 @@ lisa-ai/
 ├── convex/
 │   ├── ai.ts                  # Gemini AI integration
 │   ├── schema.ts              # Database schema
-│   └── contacts.ts            # Contact CRUD
 └── public/
     └── favicon.png            # Custom app icon
 ```
@@ -114,7 +111,6 @@ lisa-ai/
 | `/signin` | Sign In | Login page |
 | `/signup` | Sign Up | Registration |
 | `/call` | **Call Page** | Main voice assistant (tap-to-talk) |
-| `/contacts` | Contacts | Manage contacts |
 | `/settings` | Settings | Preferences |
 
 ---
@@ -131,7 +127,7 @@ npm run preview
 
 **Deploy to Vercel:**
 1. Push to GitHub
-2. Import in [Vercel](https://vercel.com)
+2. Import in [Netlify](https://app.netlify.com/)
 3. Add env vars → Deploy
 
 ---
@@ -151,4 +147,4 @@ npm run preview
 
 ## License
 
-MIT — University Internship Project 2026
+MIT
