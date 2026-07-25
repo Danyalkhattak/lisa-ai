@@ -427,11 +427,11 @@ export default function LandingPage() {
             </blockquote>
             <div className="flex items-center justify-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold">
-                A
+                <img src="hashim.jpg" alt="Hashim Bin Wali" className="w-full h-full object-cover rounded-full" />
               </div>
               <div className="text-left">
-                <p className="text-white text-sm font-medium">Alex Chen</p>
-                <p className="text-gray-500 text-xs">Product Designer</p>
+                <p className="text-white text-sm font-medium">Hashim Bin Wali</p>
+                <p className="text-gray-500 text-xs">Full Stack Developer</p>
               </div>
             </div>
           </motion.div>
