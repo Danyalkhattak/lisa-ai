@@ -125,7 +125,7 @@ npm run build
 npm run preview
 ```
 
-**Deploy to Vercel:**
+**Deploy to Netlify:**
 1. Push to GitHub
 2. Import in [Netlify](https://app.netlify.com/)
 3. Add env vars → Deploy
