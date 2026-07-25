@@ -4,8 +4,6 @@ import { useUser, useClerk } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import {
   Settings,
-  Volume2,
-  VolumeX,
   Trash2,
   LogOut,
   Check,
@@ -18,14 +16,12 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const navigate = useNavigate();
 
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
 
@@ -33,7 +29,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/call");
+    navigate("/")
   };
 
   const handleClearHistory = async () => {
@@ -54,7 +50,7 @@ export default function SettingsPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/call')}
             className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-400" />
@@ -104,61 +100,6 @@ export default function SettingsPage() {
                 <span className="text-xs text-emerald-400 font-medium">Active</span>
               </div>
             </div>
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="space-y-3"
-        >
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 flex items-center gap-2">
-            <Volume2 className="w-3.5 h-3.5" />
-            Voice
-          </h2>
-          
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl divide-y divide-white/[0.04] backdrop-blur-sm overflow-hidden">
-            <button
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
-              className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
-                  voiceEnabled 
-                    ? "bg-violet-500/15 text-violet-400" 
-                    : "bg-white/[0.04] text-gray-500"
-                )}>
-                  {voiceEnabled ? (
-                    <Volume2 className="w-5 h-5" />
-                  ) : (
-                    <VolumeX className="w-5 h-5" />
-                  )}
-                </div>
-                <div className="text-left">
-                  <p className="text-white font-medium text-[15px]">Voice Responses</p>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {voiceEnabled ? "Lisa speaks responses aloud" : "Text-only mode"}
-                  </p>
-                </div>
-              </div>
-              
-              <div 
-                onClick={(e) => { e.stopPropagation(); setVoiceEnabled(!voiceEnabled); }}
-                className={cn(
-                  "relative w-12 h-7 rounded-full cursor-pointer transition-all duration-300",
-                  voiceEnabled 
-                    ? "bg-gradient-to-r from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/25" 
-                    : "bg-white/10"
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300",
-                  voiceEnabled ? "translate-x-6" : "translate-x-1"
-                )} />
-              </div>
-            </button>
           </div>
         </motion.section>
 
