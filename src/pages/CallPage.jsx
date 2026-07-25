@@ -561,9 +561,40 @@ export default function CallPage() {
     return true;
   }, [getToken]);
 
-  const speak = useCallback((text) => {
-    return new Promise(async (resolve) => {
-      if (!text?.trim() || !mountedRef.current) { resolve(); return; }
+  const speak = useCallback((text, options = {}) => {
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      // Clean up and resolve once
+      const finish = (shouldAddLine = true) => {
+        if (resolved) return;
+        resolved = true;
+
+        // Clear any scheduled timeout
+        if (options.timeoutId) {
+          clearTimeout(options.timeoutId);
+          options.timeoutId = null;
+        }
+
+        // Stop word‑by‑word reveal
+        stopWordReveal();
+
+        if (mountedRef.current) {
+          setIsSpeaking(false);
+          setCurrentSpokenText('');
+          if (shouldAddLine) {
+            // `clean` is defined below and captured in closure
+            addLine('assistant', clean);
+          }
+        }
+        resolve();
+      };
+
+      // --- Main TTS logic (unchanged) ---
+      if (!text?.trim() || !mountedRef.current) {
+        finish(false);
+        return;
+      }
 
       const clean = text
         .replace(/```[\s\S]*?```/g, '')
@@ -572,47 +603,62 @@ export default function CallPage() {
         .replace(/https?:\/\/[^\s]+/g, '')
         .trim();
 
-      if (!clean) { resolve(); return; }
-
-      setIsSpeaking(true);
-      // Don't dump the whole reply on screen yet — it gets revealed
-      // word by word once audio actually starts playing, below.
-      setCurrentSpokenText('');
-
-      // Try ElevenLabs' higher-quality female voice first, streamed for
-      // the lowest latency. This resolves to `false` if
-      // ELEVENLABS_API_KEY isn't configured, and throws if the request
-      // or playback failed — in either case we fall back to browser TTS
-      // below so the app always works, with or without ElevenLabs set up.
-      try {
-        const spoke = await speakWithElevenLabsStream(clean, {
-          // Fires the instant the first audio chunk is buffered and
-          // playback begins — not when the network request kicks off —
-          // so the text reveal starts right along with the voice.
-          onStart: () => {
-            if (mountedRef.current) revealWordByWord(clean);
-          },
-        });
-        if (spoke) {
-          console.log('[Lisa] Speech ended (ElevenLabs)');
-          stopWordReveal();
-          if (mountedRef.current) {
-            setIsSpeaking(false);
-            setCurrentSpokenText('');
-            addLine('assistant', clean);
-          }
-          resolve();
-          return;
-        }
-      } catch (err) {
-        console.error('[Lisa] ElevenLabs streaming TTS failed, falling back to browser TTS:', err);
-        stopWordReveal();
+      if (!clean) {
+        finish(false);
+        return;
       }
 
-      if (!mountedRef.current) { resolve(); return; }
-      speakWithBrowserTTS(clean).then(resolve);
+      setIsSpeaking(true);
+      setCurrentSpokenText('');
+
+      // --- Timeout (only for Apple WebKit) ---
+      if (IS_APPLE_WEBKIT) {
+        const timeoutMs = options.timeout ?? 30000; // 30 seconds
+        options.timeoutId = setTimeout(() => {
+          console.warn('[Lisa] TTS timed out on Apple WebKit – forcing completion');
+          // Cancel any ongoing speech
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+          stopWordReveal();
+          // Force finish and add the assistant line
+          finish(true);
+        }, timeoutMs);
+      }
+
+      // --- Try ElevenLabs streaming ---
+      (async () => {
+        try {
+          const spoke = await speakWithElevenLabsStream(clean, {
+            onStart: () => {
+              if (mountedRef.current) revealWordByWord(clean);
+            },
+          });
+          if (spoke) {
+            console.log('[Lisa] Speech ended (ElevenLabs)');
+            finish(true);
+            return;
+          }
+        } catch (err) {
+          console.error('[Lisa] ElevenLabs streaming TTS failed, falling back to browser TTS:', err);
+          stopWordReveal();
+        }
+
+        // --- Fallback to browser TTS ---
+        if (!mountedRef.current) {
+          finish(false);
+          return;
+        }
+        try {
+          await speakWithBrowserTTS(clean);
+          finish(true);
+        } catch (err) {
+          console.error('[Lisa] Browser TTS failed:', err);
+          finish(true); // still add the line
+        }
+      })();
     });
-  }, [speakWithElevenLabsStream, speakWithBrowserTTS, revealWordByWord, stopWordReveal]);
+  }, [speakWithElevenLabsStream, speakWithBrowserTTS, revealWordByWord, stopWordReveal, addLine]);
 
   // ==================== Call Control ====================
 
@@ -626,7 +672,7 @@ export default function CallPage() {
     // reply, so the first streamed TTS request doesn't pay for an
     // extra "list voices" round trip. Best-effort — silently ignored
     // if ElevenLabs isn't configured or this fails.
-    warmElevenLabs().catch(() => {});
+    warmElevenLabs().catch(() => { });
   }, [warmElevenLabs]);
 
   const endCall = useCallback(() => {

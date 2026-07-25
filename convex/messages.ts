@@ -2,35 +2,6 @@ import { mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireClerkSubject } from "./auth";
 
-/**
- * Message CRUD.
- *
- * Ownership is enforced on every function: the caller must own the
- * conversation that the message belongs to. Messages are denormalized
- * with `userId` (the Clerk subject) so we can filter by user without
- * a join — this matters for `stats.getUsage` and for free-tier quota
- * checks that will land with the Stripe integration.
- *
- * The Gemini-powered AI response flow (Section 6) will look like:
- *   1. Client calls `messages.send` to persist the user's message.
- *   2. Client calls a `messages.generateReply` action (Section 6)
- *      which streams Gemini's response and calls
- *      `messages.saveAssistantMessage` to persist it.
- *
- * For now, `saveAssistantMessage` exists so the action layer can be
- * dropped in without schema changes.
- */
-
-/**
- * List messages in a conversation, oldest first.
- *
- * Internal-only: currently called exclusively from `ai.ts`'s `chat`
- * action to build Gemini's conversation context. The dashboard
- * currently keeps its own local transcript state (see CallPage.jsx)
- * rather than querying this directly. If the dashboard later needs
- * a persisted transcript view with infinite scroll, add a separate
- * public `query` for that rather than exposing this one.
- */
 export const list = internalQuery({
   args: {
     conversationId: v.id("conversations"),
@@ -53,20 +24,6 @@ export const list = internalQuery({
   },
 });
 
-/**
- * Send a user message. Persists the message and bumps the parent
- * conversation's `lastMessageAt` + `messageCount` in a single
- * mutation so the sidebar's sort order updates atomically.
- *
- * Returns the new message's Convex `Id<"messages">`.
- *
- * NOTE: this does NOT trigger the AI response — that's an action
- * (Section 6) the client calls separately. Keeping them separate
- * means the user's message is in the DB even if Gemini is down.
- *
- * Internal-only: called from `ai.ts`'s `chat` action, which is the
- * client's single entry point for sending a message end-to-end.
- */
 export const send = internalMutation({
   args: {
     conversationId: v.id("conversations"),

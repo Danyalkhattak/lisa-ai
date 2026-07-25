@@ -3,23 +3,6 @@ import { v } from "convex/values";
 import { requireClerkSubject } from "./auth";
 import { sanitizeTitle } from "./lib";
 
-/**
- * Conversation CRUD.
- *
- * All functions enforce per-user ownership: every query/mutation
- * reads the Clerk subject from the auth context and filters by it,
- * so a user can never read or mutate another user's conversations.
- *
- * Soft-delete pattern: `softDelete` sets `deletedAt`; `restore` clears
- * it; `permanentDelete` cascades to messages and removes the row.
- */
-
-/**
- * List conversations for the current user, newest first.
- *
- * - Soft-deleted conversations are excluded unless `includeDeleted` is true.
- * - Default page size is 50; pass `paginationOpts` for true pagination.
- */
 export const list = query({
   args: {
     includeDeleted: v.optional(v.boolean()),

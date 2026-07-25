@@ -15,7 +15,6 @@ import type * as conversations from "../conversations.js";
 import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as messages from "../messages.js";
-import type * as tools from "../tools.js";
 import type * as tts from "../tts.js";
 import type * as ttsStream from "../ttsStream.js";
 import type * as userSettings from "../userSettings.js";
@@ -35,7 +34,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   lib: typeof lib;
   messages: typeof messages;
-  tools: typeof tools;
   tts: typeof tts;
   ttsStream: typeof ttsStream;
   userSettings: typeof userSettings;
