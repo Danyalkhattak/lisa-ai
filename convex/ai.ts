@@ -14,7 +14,7 @@
  *   - GEMINI_API_KEY: Google Generative AI API key
  */
 
-import { action } from "./_generated/server";
+import { action, httpAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requireClerkSubject } from "./auth";
@@ -130,13 +130,11 @@ async function callGeminiAPI(
 // Core AI Logic
 // ============================================================
 
-async function generateAIReply(
+async function buildGeminiContents(
   ctx: any,
-  args: GenerateAIReplyArgs
-): Promise<GenerateReplyResult> {
-  // 1. Authenticate & verify ownership
-  const clerkId = await requireClerkSubject(ctx);
-
+  args: GenerateAIReplyArgs,
+  clerkId: string
+): Promise<GeminiContent[]> {
   const conversation = await ctx.runQuery(
     internal.conversations.get,
     { conversationId: args.conversationId as any }
@@ -146,13 +144,13 @@ async function generateAIReply(
     throw new Error("Conversation not found or access denied");
   }
 
-  // 2. Load recent messages for context
+  // Load recent messages for context
   const recentMessages = await ctx.runQuery(internal.messages.list, {
     conversationId: args.conversationId,
     limit: MAX_CONTEXT_MESSAGES,
   });
 
-  // 3. Build conversation contents for Gemini
+  // Build conversation contents for Gemini
   const contents: GeminiContent[] = [];
 
   // Add system prompt
@@ -180,6 +178,19 @@ async function generateAIReply(
     role: "user",
     parts: [{ text: args.userMessage }],
   });
+
+  return contents;
+}
+
+async function generateAIReply(
+  ctx: any,
+  args: GenerateAIReplyArgs
+): Promise<GenerateReplyResult> {
+  // 1. Authenticate & verify ownership
+  const clerkId = await requireClerkSubject(ctx);
+
+  // 2-3. Load context & build conversation contents for Gemini
+  const contents = await buildGeminiContents(ctx, args, clerkId);
 
   // 4. Call Gemini API (simple chat, no tools)
   let geminiResponse: GeminiResponse;
@@ -254,4 +265,223 @@ export const chat = action({
       messageId,
     });
   },
+});
+
+// ============================================================
+// Streaming HTTP endpoint (WebKit/Safari path)
+// ============================================================
+
+/**
+ * HTTP-streamed variant of `chat`.
+ *
+ * `chat` above is a normal Convex `action`, reached from the client
+ * via `useAction`, which round-trips over Convex's WebSocket
+ * connection. On iOS/macOS Safari that connection has been observed
+ * to leave the client's promise unresolved even though the action
+ * completed and the reply was persisted server-side (confirmed via
+ * the Convex dashboard/logs) — the UI is stuck on "Thinking..."
+ * forever. Other browsers (Chrome, Firefox, Edge, Android) don't
+ * show this symptom, so rather than touching the WebSocket path for
+ * everyone, this endpoint gives Safari/WebKit an alternate route
+ * that never depends on that connection: a plain HTTPS POST with a
+ * streamed response body, exactly like `/tts-stream` already does
+ * for audio. Plain `fetch` + `ReadableStream` is old, boring, and
+ * reliable on WebKit.
+ *
+ * As a bonus this also streams Gemini's reply token-by-token instead
+ * of waiting for the full completion, so the client can render text
+ * as it's generated instead of showing a static spinner — lower
+ * perceived latency, matching (in fact beating) the non-streaming
+ * path used elsewhere.
+ *
+ * The response body is plain UTF-8 text chunks (no SSE framing) —
+ * the client just concatenates whatever it reads. The full reply is
+ * still persisted via `messages.saveAssistantMessage` once the
+ * stream ends, same as the non-streaming action.
+ */
+export const chatStream = httpAction(async (ctx, request) => {
+  // Wide-open CORS is fine here: this endpoint requires a valid Clerk
+  // bearer token to do anything (checked below) and doesn't rely on
+  // cookies, so there's no session to leak cross-origin — same
+  // reasoning as /tts-stream.
+  const corsHeaders = { "Access-Control-Allow-Origin": "*" };
+
+  let clerkId: string;
+  try {
+    clerkId = await requireClerkSubject(ctx);
+  } catch {
+    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  }
+
+  let payload: { conversationId?: string; message?: string };
+  try {
+    payload = await request.json();
+  } catch {
+    return new Response("Invalid JSON body", { status: 400, headers: corsHeaders });
+  }
+
+  const conversationId = payload.conversationId;
+  const userMessage = (payload.message ?? "").trim();
+  if (!conversationId || !userMessage) {
+    return new Response("Missing conversationId or message", {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  // Save the user's message first, same as the `chat` action does.
+  let messageId: string;
+  try {
+    messageId = await ctx.runMutation(internal.messages.send, {
+      conversationId: conversationId as any,
+      content: userMessage,
+    });
+  } catch (err: any) {
+    return new Response(err?.message || "Failed to save message", {
+      status: 403,
+      headers: corsHeaders,
+    });
+  }
+
+  let contents: GeminiContent[];
+  try {
+    contents = await buildGeminiContents(
+      ctx,
+      { conversationId, userMessage, messageId },
+      clerkId
+    );
+  } catch (err: any) {
+    return new Response(err?.message || "Failed to load conversation", {
+      status: 403,
+      headers: corsHeaders,
+    });
+  }
+
+  const textHeaders = {
+    ...corsHeaders,
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+  };
+
+  let apiKey: string;
+  try {
+    apiKey = getGeminiApiKey();
+  } catch (err: any) {
+    const fallback = "I'm having trouble connecting right now. Please try again.";
+    await ctx.runMutation(internal.messages.saveAssistantMessage, {
+      conversationId: conversationId as any,
+      content: fallback,
+    });
+    return new Response(fallback, { status: 200, headers: textHeaders });
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+      }),
+    });
+  } catch (err) {
+    console.error("[ai] chatStream: Gemini request failed:", err);
+    const fallback = "I'm having trouble connecting right now. Please try again.";
+    await ctx.runMutation(internal.messages.saveAssistantMessage, {
+      conversationId: conversationId as any,
+      content: fallback,
+    });
+    return new Response(fallback, { status: 200, headers: textHeaders });
+  }
+
+  if (!upstream.ok || !upstream.body) {
+    const errText = await upstream.text().catch(() => "");
+    console.error(`[ai] chatStream: Gemini API error (${upstream.status}):`, errText);
+    const fallback = "I'm having trouble connecting right now. Please try again.";
+    await ctx.runMutation(internal.messages.saveAssistantMessage, {
+      conversationId: conversationId as any,
+      content: fallback,
+    });
+    return new Response(fallback, { status: 200, headers: textHeaders });
+  }
+
+  // Re-frame Gemini's SSE stream (`data: {...}\n\n` chunks of partial
+  // JSON) into plain text deltas — the client doesn't need to know
+  // anything about Gemini's wire format, just the words as they
+  // arrive. The full text is accumulated here too, so it can be
+  // persisted once the stream finishes.
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = upstream.body!.getReader();
+      let buffer = "";
+      let fullText = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+
+            const jsonStr = trimmed.slice(5).trim();
+            if (!jsonStr || jsonStr === "[DONE]") continue;
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const delta = (parsed?.candidates?.[0]?.content?.parts ?? [])
+                .filter((part: any) => typeof part?.text === "string")
+                .map((part: any) => part.text)
+                .join("");
+
+              if (delta) {
+                fullText += delta;
+                controller.enqueue(encoder.encode(delta));
+              }
+            } catch (parseErr) {
+              // Malformed/partial SSE chunk — skip it, the rest of the
+              // stream keeps flowing.
+              console.error("[ai] chatStream: failed to parse chunk:", parseErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[ai] chatStream: stream read failed:", err);
+      }
+
+      if (!fullText.trim()) {
+        fullText = "I understand. Let me help you with that.";
+        try {
+          controller.enqueue(encoder.encode(fullText));
+        } catch {
+          /* controller may already be closing */
+        }
+      }
+
+      try {
+        await ctx.runMutation(internal.messages.saveAssistantMessage, {
+          conversationId: conversationId as any,
+          content: fullText,
+        });
+      } catch (err) {
+        console.error("[ai] chatStream: failed to save assistant message:", err);
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, { status: 200, headers: textHeaders });
 });

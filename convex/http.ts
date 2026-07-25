@@ -3,6 +3,7 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Webhook } from "svix";
 import { speakStream } from "./ttsStream";
+import { chatStream } from "./ai";
 
 /**
  * HTTP routes for Convex. Currently just the Clerk webhook, which
@@ -105,6 +106,36 @@ http.route({
 
 http.route({
   path: "/tts-stream",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }),
+});
+
+/**
+ * Streaming chat endpoint — see convex/ai.ts's `chatStream` for the
+ * full explanation. Used only by the iOS/macOS Safari (WebKit)
+ * client path as a reliable, low-latency alternative to
+ * `useAction(api.ai.chat)`, which can hang on that platform even
+ * after the server has finished. Every other platform keeps using
+ * the regular `chat` action untouched.
+ */
+http.route({
+  path: "/chat-stream",
+  method: "POST",
+  handler: chatStream,
+});
+
+http.route({
+  path: "/chat-stream",
   method: "OPTIONS",
   handler: httpAction(async () => {
     return new Response(null, {

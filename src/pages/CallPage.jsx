@@ -31,6 +31,31 @@ const CONVEX_SITE_URL =
   import.meta.env.VITE_CONVEX_URL?.replace(/\.convex\.cloud\/?$/, ".convex.site");
 
 /**
+ * True on iOS (any browser — they're all WebKit under Apple's rules)
+ * and on desktop Safari specifically. This is what decides whether
+ * `processAndSend` below uses the streaming `/chat-stream` HTTP
+ * fetch instead of `useAction(api.ai.chat)` — see the comment on
+ * that branch for why. Computed once at module load; the browser
+ * doesn't change mid-session.
+ */
+function detectAppleWebKit() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isIOSDevice =
+    /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS 13+ reports as "MacIntel" with touch support, so UA
+    // sniffing alone misses iPads unless we also check for touch.
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Matches Safari on macOS while excluding Chrome/Firefox/Edge —
+  // including their iOS variants (CriOS/FxiOS/EdgiOS), which are
+  // already covered by isIOSDevice above.
+  const isDesktopSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  return isIOSDevice || isDesktopSafari;
+}
+
+const IS_APPLE_WEBKIT = detectAppleWebKit();
+
+/**
  * Plays a streamed `audio/mpeg` response body progressively via the
  * MediaSource API, starting playback as soon as the first chunk is
  * buffered rather than waiting for the whole clip to download. This
@@ -290,6 +315,56 @@ export default function CallPage() {
 
   // ==================== Core Processing ====================
 
+  // Streaming counterpart to `useAction(api.ai.chat)`, used only on
+  // iOS/macOS Safari (see IS_APPLE_WEBKIT above). Hits the
+  // `/chat-stream` Convex HTTP action directly with `fetch` — the
+  // same plain-HTTPS approach already used for `/tts-stream` — and
+  // reads the response body as it streams in, calling `onDelta` with
+  // the accumulated text after every chunk so the UI can show the
+  // reply as it's generated instead of a static spinner. Resolves
+  // with the final, complete text once the stream ends.
+  const generateReplyStream = useCallback(async (message, conversationId, onDelta) => {
+    if (!CONVEX_SITE_URL) {
+      throw new Error('Convex site URL is not configured.');
+    }
+
+    const token = await getToken({ template: 'convex' }).catch(() => null);
+    if (!token) {
+      throw new Error('Not authenticated.');
+    }
+
+    const response = await fetch(`${CONVEX_SITE_URL}/chat-stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message, conversationId }),
+    });
+
+    if (!response.ok || !response.body) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(errText || `Request failed (${response.status})`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      if (chunk) {
+        fullText += chunk;
+        onDelta?.(fullText);
+      }
+    }
+
+    return fullText.trim();
+  }, [getToken]);
+
   const processAndSend = useCallback(async (text) => {
     if (!text.trim() || !mountedRef.current) return;
 
@@ -308,14 +383,38 @@ export default function CallPage() {
         conversationIdRef.current = convId;
       }
 
-      const response = await generateReply({
-        message: cleanText,
-        conversationId: conversationIdRef.current,
-      });
+      let responseText;
+
+      if (IS_APPLE_WEBKIT) {
+        // iOS/macOS Safari: `useAction(api.ai.chat)` round-trips over
+        // Convex's WebSocket connection, which has been observed to
+        // leave this promise unresolved on WebKit even after the
+        // server finished and saved the reply — the UI gets stuck on
+        // "Thinking..." forever. Use the plain-HTTPS streaming
+        // endpoint instead (same approach already used for
+        // /tts-stream), and show the reply as it streams in rather
+        // than waiting for the full thing.
+        try {
+          responseText = await generateReplyStream(
+            cleanText,
+            conversationIdRef.current,
+            (partial) => {
+              if (mountedRef.current) setCurrentSpokenText(partial);
+            },
+          );
+        } finally {
+          if (mountedRef.current) setCurrentSpokenText('');
+        }
+      } else {
+        const response = await generateReply({
+          message: cleanText,
+          conversationId: conversationIdRef.current,
+        });
+        responseText = response?.content || response;
+      }
 
       if (!mountedRef.current) return;
 
-      const responseText = response?.content || response;
       if (responseText && typeof responseText === 'string' && responseText.trim()) {
         await speak(responseText);
       }
@@ -330,7 +429,7 @@ export default function CallPage() {
         setIsProcessing(false);
       }
     }
-  }, [generateReply, createConversation]);
+  }, [generateReply, createConversation, generateReplyStream]);
 
   // ==================== Transcript ====================
 
