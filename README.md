@@ -7,11 +7,11 @@ A voice-controlled AI assistant built for my university internship project.
 ---
 ## Demo - Desktop Devices
 
-[Demo](./public/demo(desktop).gif)
+![Demo](./public/demo(desktop).gif)
 
 ## Demo - Mobile Devices
 
-[Demo](./public/demo(mobile).gif)
+![Demo](./public/demo(mobile).gif)
 
 ---
 
