@@ -9,13 +9,13 @@ A voice-controlled AI assistant built for my university internship project.
 ## Demo - Desktop Devices
 
 <p align="center">
-  <img src="./public/demo(desktop).gif" alt="Desktop Demo" width="800">
+  <img src="./public/demo-desktop.gif" alt="Desktop Demo" width="800">
 </p>
 
 ## Demo - Mobile Devices
 
 <p align="center">
-  <img src="./public/demo(mobile).gif" alt="Mobile Demo" width="350">
+  <img src="./public/demo-mobile.gif" alt="Mobile Demo" width="350">
 </p>
 
 ---
