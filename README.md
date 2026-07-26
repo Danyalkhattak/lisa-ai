@@ -400,7 +400,7 @@ These demonstrate:
 | Conversation history             |    ✅   | Convex Database                        |
 | React–Convex integration         |    ✅   | `useQuery`, `useMutation`, `useAction` |
 | Convex backend & database        |    ✅   | Convex Serverless Functions            |
-
+| Email & Weather Check            |    ❌   | Gemini was not calling the Convex functions reliably |
 ---
 
 ## What I Learned
