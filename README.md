@@ -5,13 +5,18 @@ A voice-controlled AI assistant built for my university internship project.
 **Tech Stack:** React · Vite · TailwindCSS · Clerk · Convex · Google Gemini · ElevenLabs
 
 ---
+
 ## Demo - Desktop Devices
 
-![Demo](./public/demo(desktop).gif)
+<p align="center">
+  <img src="./public/demo(desktop).gif" alt="Desktop Demo" width="800">
+</p>
 
 ## Demo - Mobile Devices
 
-![Demo](./public/demo(mobile).gif)
+<p align="center">
+  <img src="./public/demo(mobile).gif" alt="Mobile Demo" width="350">
+</p>
 
 ---
 
